@@ -1,0 +1,889 @@
+import React, { useState } from 'react';
+import { BookOpen, Clock, Users, Target, FileText, Sparkles, Copy, Check, AlertCircle, ChevronRight, Download, FileDown, RefreshCw, Loader2, Info } from 'lucide-react';
+
+// UCLA Brand Colors
+const UCLA_COLORS = {
+  blue: '#2774AE',
+  gold: '#FFD100',
+  darkBlue: '#005587',
+  darkestBlue: '#003B5C',
+  lightBlue: '#8BB8E8',
+  lightestBlue: '#DAEBFE',
+  text: '#333333',
+  caption: '#666666'
+};
+
+const PILLARS = {
+  protection: {
+    id: 'protection',
+    name: 'Protection & Habits',
+    icon: '🛡️',
+    color: UCLA_COLORS.blue,
+    description: 'Equip students with preventive habits and responsive strategies that minimize physical, psychological, and social harms from digital media use. Emphasizes healthy boundaries, privacy/security, sleep hygiene, and recognizing problematic use patterns.',
+    skills: ['routines', 'help-seeking', 'boundary setting', 'privacy', 'sleep hygiene'],
+    evidenceBase: 'CDC (Zablotsky et al., 2025): Teens with 4+ hours/day non-schoolwork screen use show higher rates of depression, anxiety, irregular sleep. Short-form video platforms show stronger negative cognitive impacts (Nguyen et al., 2025). Sleep is critical mediating mechanism for mental health.'
+  },
+  self: {
+    id: 'self',
+    name: 'Self & Feelings',
+    icon: '💚',
+    color: '#32AA56',
+    description: 'Foster intrapersonal awareness and management of emotions, identity, and psychological well-being in digital contexts. Students learn how online experiences affect self-concept and mental health.',
+    skills: ['emotional awareness', 'self-monitoring', 'identity development', 'emotional regulation'],
+    evidenceBase: 'JAMA Network Open (Nagata et al., 2025): Social media use associated with elevated depressive symptoms in youth ages 9-13. APA (2023): 46% of adolescents report social media makes them feel worse about body image.'
+  },
+  relationships: {
+    id: 'relationships',
+    name: 'Relationships',
+    icon: '🤝',
+    color: UCLA_COLORS.gold,
+    description: 'Cultivate healthy, empathetic, and respectful interactions online. Students learn to communicate effectively, resolve conflicts, resist cyberbullying, and support inclusive digital communities.',
+    skills: ['empathy', 'conflict resolution', 'bystander intervention', 'consent', 'community care'],
+    evidenceBase: 'Cyberbullying peaks in middle school; 25-30% report being cyberbullied (Cyberbullying Research Center). Parent-involved interventions show effect sizes of d=2.10 vs d=1.04 without parental involvement.'
+  },
+  systems: {
+    id: 'systems',
+    name: 'Systems',
+    icon: '🧠',
+    color: UCLA_COLORS.darkBlue,
+    description: 'Develop critical understanding of algorithms, data collection, platform design, business models, and regulatory frameworks so students can make informed decisions and advocate for ethical technology.',
+    skills: ['algorithmic literacy', 'critical analysis', 'data awareness', 'media literacy'],
+    evidenceBase: 'Harvard Kennedy School (Chung, 2025): Algorithmic curation fosters filter bubbles and misinformation. California AB 873 (2023) requires media literacy integration across curriculum.'
+  },
+  agency: {
+    id: 'agency',
+    name: 'Agency & Action',
+    icon: '📣',
+    color: '#8A69D4',
+    description: 'Support empowered, ethical participation - voice, advocacy, civic engagement, bystander-to-upstander moves, help-seeking, and using tools to improve digital environment.',
+    skills: ['advocacy', 'decision-making', 'help-seeking', 'civic engagement', 'ethical reasoning'],
+    evidenceBase: 'ABCD Study (n=9,538): Effects vary by individual, supporting personalized strategies. OECD (2025): Youth participation in policy development enhances effectiveness.'
+  }
+};
+
+const GRADES = {
+  'tk-5': { 
+    label: 'TK-5 (Elementary)', 
+    ages: '4-11 years',
+    devContext: 'Concrete operational thinking, learning through play, highly influenced by trusted adults, developing impulse control. Digital reality: 4-5 hrs/day screen time, YouTube/Roblox dominant, 49% of 10-12 yr olds on social media despite age limits.',
+    focus: 'Foundational behavioral norms, identifying safe/unsafe situations, basic privacy, kind communication, asking trusted adults for help'
+  },
+  '6-8': { 
+    label: '6-8 (Middle School)', 
+    ages: '11-14 years',
+    devContext: 'Formal operational thinking emerging, heightened sensitivity to peer approval, identity formation, increased emotional intensity. Digital reality: 4.8 hrs/day on social media, cyberbullying peaks, first experiences with algorithmic feeds.',
+    focus: 'Social comparison and FOMO, online vs offline identity, persuasive design awareness, cyberbullying prevention, information evaluation'
+  },
+  '9-12': { 
+    label: '9-12 (High School)', 
+    ages: '14-18 years',
+    devContext: 'Abstract and hypothetical thinking, identity consolidation, moral reasoning development, desire for autonomy. Digital reality: 95% use social media, 46% online almost constantly, navigating college/career implications.',
+    focus: 'Digital footprint for future, AI ethics, surveillance and data monetization, civic implications, legal consequences, ethical decision-making'
+  }
+};
+
+const DURATIONS = ['15', '20', '30', '45'];
+const ACTIVITY_TYPES = ['Discussion', 'Interactive Activity', 'Scenario-Based', 'Creative Project', 'Game-Based', 'Reflection'];
+const SETTINGS = ['Classroom', 'Home/Family', 'After-School Program', 'Small Group', 'Advisory/Homeroom'];
+
+// Topic Generation System Prompt
+var buildTopicGenerationPrompt = function(pillar, grade, setting, duration) {
+  var pillarData = PILLARS[pillar];
+  var gradeData = GRADES[grade];
+  
+  return 'You are a curriculum development specialist for the UCLA Center for the Transformation of Schools, working with the California Department of Public Health to develop the Digital Futures curriculum.\n\nGenerate 5 highly relevant, evidence-based lesson topics. Each must be grounded in current research (2023-2025) and address issues genuinely relevant to how young people actually use technology today.\n\n## PARAMETERS\nPillar: ' + pillarData.name + '\nPillar Purpose: ' + pillarData.description + '\nEvidence Base: ' + pillarData.evidenceBase + '\n\nGrade Band: ' + gradeData.label + ' (' + gradeData.ages + ')\nDevelopmental Context: ' + gradeData.devContext + '\nAppropriate Focus: ' + gradeData.focus + '\n\nSetting: ' + setting + '\nLesson Duration: ' + duration + ' minutes\n\n## CURRENT PRIORITY ISSUES (2024-2026)\n1. Short-form video (TikTok, Reels, Shorts) - more severe cognitive impacts than traditional social media\n2. Generative AI literacy - ChatGPT, image generators, deepfakes\n3. Sleep disruption - critical mediating variable for mental health\n4. Sextortion and image-based abuse - rising concern for teens\n5. Algorithm awareness - how feeds shape exposure and behavior\n6. Online hate and extremism exposure\n7. Digital equity - varying access levels\n8. School phone policies creating new dynamics\n9. Mental health complexity - beyond simple "social media bad" narratives\n\n## GENERATION RULES\n1. Be SPECIFIC, not generic: "Recognizing manipulation in DM requests" not "Online safety"\n2. Reflect ACTUAL youth experience with platforms they use (TikTok, Snapchat, Discord, Roblox, etc.)\n3. EMPOWERMENT over fear - focus on skills and agency\n4. Acknowledge BENEFITS alongside risks\n5. Use AGE-APPROPRIATE language and concepts\n6. Address EQUITY - varying access, cultural contexts, differential impacts\n7. Ground in EVIDENCE with brief citations\n8. Be TIMELY - current digital landscape\n9. Support SKILL-BUILDING, not just knowledge\n10. TEACHABLE by non-experts (teachers, parents, counselors)\n\n## OUTPUT FORMAT\nReturn ONLY a JSON array with no other text, no markdown, no code fences. Use only straight double quotes.\n\n[{"title":"Short engaging title 5-8 words","description":"One sentence describing the lesson focus","essentialQuestion":"Thought-provoking question students explore","skills":["skill1","skill2"],"evidenceBasis":"Brief research citation supporting relevance","equityNote":"How this addresses diverse student experiences"}]\n\nGenerate 5 topics now:';
+};
+
+// Lesson Generation Prompt (enhanced)
+var buildLessonGenerationPrompt = function(topic, pillar, grade, duration, setting, activity, notes) {
+  var pillarData = PILLARS[pillar];
+  var gradeData = GRADES[grade];
+  var mainTime = Math.floor(parseInt(duration) * 0.5);
+  var discussTime = Math.floor(parseInt(duration) * 0.25);
+  var openClose = parseInt(duration) - mainTime - discussTime;
+  
+  return 'You are creating a detailed, scripted lesson plan for the UCLA CTS x CDPH Digital Futures curriculum. This lesson must be immediately usable by any adult facilitator (teacher, parent, counselor) without prior training.\n\n## LESSON PARAMETERS\nTopic: ' + topic.title + '\nDescription: ' + topic.description + '\nEssential Question: ' + topic.essentialQuestion + '\nTarget Skills: ' + topic.skills.join(', ') + '\n\nPillar: ' + pillarData.name + '\nPillar Purpose: ' + pillarData.description + '\n\nGrade Band: ' + gradeData.label + ' (' + gradeData.ages + ')\nDevelopmental Context: ' + gradeData.devContext + '\n\nDuration: ' + duration + ' minutes\nSetting: ' + setting + '\nActivity Type: ' + activity + (notes ? '\nAdditional Notes: ' + notes : '') + '\n\n## PEDAGOGICAL REQUIREMENTS\n1. EMPOWERMENT over fear - validate technology benefits while building skills\n2. SCENARIO-BASED - use realistic situations without clear right/wrong answers\n3. THINKING ROUTINES - multiple perspectives, predicting consequences, evaluating evidence\n4. CULTURALLY RESPONSIVE - acknowledge diverse experiences and contexts\n5. SCRIPTED - word-for-word what facilitator says (warm, conversational tone)\n6. ACTIONABLE - concrete strategies students can use immediately\n7. NO PREACHING - engage curiosity, not lecture\n\n## OUTPUT FORMAT\nReturn ONLY a JSON object with no other text, no markdown, no code fences. Use only straight double quotes.\n\n{"title":"Engaging lesson title","subtitle":"One sentence hook","objectives":["Learning objective 1","Learning objective 2","Learning objective 3"],"materials":["Material 1","Material 2"],"preparation":["Prep step 1","Prep step 2"],"tips":["Facilitator tip 1","Facilitator tip 2","Tip for handling sensitive disclosures"],"phases":[{"name":"Opening Hook","time":"' + Math.floor(openClose/2) + ' min","script":"EXACT words to say to open the lesson. Start with a hook question or relatable scenario. Be warm and curious, not lecturing.","actions":["Specific facilitator action","Another action"]},{"name":"Main Activity","time":"' + mainTime + ' min","script":"Detailed facilitation script for the core activity. Include transitions and timing cues.","actions":["Step 1 with details","Step 2 with details","Step 3 with details"]},{"name":"Discussion","time":"' + discussTime + ' min","script":"How to facilitate the discussion. Include prompts for quiet groups.","questions":[{"q":"Discussion question 1","followup":"Probing follow-up"},{"q":"Discussion question 2","followup":"Probing follow-up"},{"q":"Discussion question 3","followup":"Probing follow-up"}]},{"name":"Closing","time":"' + Math.ceil(openClose/2) + ' min","script":"Closing message that reinforces key learning and previews application.","takeaway":"The ONE thing students should remember"}],"vocabulary":[{"term":"Key term 1","definition":"Student-friendly definition"},{"term":"Key term 2","definition":"Student-friendly definition"}],"troubleshooting":[{"problem":"If students are reluctant to share","solution":"Specific strategy"},{"problem":"If a student discloses concerning information","solution":"Response protocol"},{"problem":"If discussion gets off-track","solution":"Redirection strategy"}],"familyExtension":["Conversation starter for home","Activity families can do together"],"assessmentIdeas":["Quick formative check","Observable indicator of understanding"]}\n\nCreate this lesson plan now:';
+};
+
+// Generate HTML for download
+var generateHTML = function(lesson, form, topicData) {
+  var pillar = PILLARS[form.pillar];
+  var grade = GRADES[form.grade];
+  
+  return '<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>' + lesson.title + ' - Digital Futures Lesson Plan</title>\n  <style>\n    @import url("https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap");\n    * { box-sizing: border-box; margin: 0; padding: 0; }\n    body { font-family: "Open Sans", Arial, sans-serif; font-size: 11pt; line-height: 1.5; color: #333333; max-width: 8.5in; margin: 0 auto; padding: 0.75in; }\n    .header { background: linear-gradient(135deg, ' + UCLA_COLORS.blue + ' 0%, ' + UCLA_COLORS.darkBlue + ' 100%); color: white; padding: 24px 32px; margin: -0.75in -0.75in 24px -0.75in; width: calc(100% + 1.5in); }\n    .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }\n    .logo-section { display: flex; align-items: center; gap: 12px; }\n    .logo-text { font-size: 10pt; opacity: 0.9; }\n    .pillar-icon { font-size: 36px; }\n    .title { font-size: 22pt; font-weight: 700; margin-bottom: 4px; }\n    .subtitle { font-size: 12pt; opacity: 0.9; }\n    .meta-badges { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }\n    .badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 16px; font-size: 9pt; }\n    .essential-q { background: rgba(255,209,0,0.3); border-left: 4px solid ' + UCLA_COLORS.gold + '; padding: 12px 16px; margin-top: 16px; border-radius: 0 8px 8px 0; font-style: italic; }\n    h2 { color: ' + UCLA_COLORS.blue + '; font-size: 14pt; font-weight: 700; margin: 24px 0 12px 0; padding-bottom: 4px; border-bottom: 2px solid ' + UCLA_COLORS.lightestBlue + '; }\n    .section { margin-bottom: 20px; }\n    .objectives-list { list-style: none; padding: 0; }\n    .objectives-list li { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; }\n    .obj-num { background: ' + UCLA_COLORS.lightestBlue + '; color: ' + UCLA_COLORS.blue + '; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10pt; font-weight: 600; flex-shrink: 0; }\n    .materials-grid { display: flex; flex-wrap: wrap; gap: 8px; }\n    .material-item { background: ' + UCLA_COLORS.lightestBlue + '; border: 1px solid ' + UCLA_COLORS.lightBlue + '; padding: 4px 12px; border-radius: 16px; font-size: 10pt; }\n    .tips-box { background: #F3E8FF; border-left: 4px solid #8A69D4; padding: 16px; border-radius: 0 8px 8px 0; }\n    .phase-card { border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 16px; overflow: hidden; page-break-inside: avoid; }\n    .phase-header { background: #F3F4F6; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }\n    .phase-name { font-weight: 700; color: #1F2937; }\n    .phase-time { background: white; padding: 2px 10px; border-radius: 12px; font-size: 9pt; color: #666666; }\n    .phase-content { padding: 16px; }\n    .script-box { background: ' + UCLA_COLORS.lightestBlue + '; border-left: 4px solid ' + UCLA_COLORS.blue + '; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 8px 0; white-space: pre-wrap; font-size: 10pt; }\n    .script-label { font-weight: 600; color: ' + UCLA_COLORS.darkBlue + '; font-size: 10pt; margin-bottom: 4px; }\n    .actions-list { list-style: none; padding: 0; margin: 8px 0; }\n    .actions-list li { display: flex; align-items: flex-start; gap: 6px; margin-bottom: 4px; font-size: 10pt; }\n    .question-card { background: #F9FAFB; padding: 10px 14px; border-radius: 6px; margin-bottom: 8px; }\n    .question-text { font-weight: 600; color: #1F2937; font-size: 10pt; }\n    .followup-text { font-size: 9pt; color: #666666; margin-top: 4px; }\n    .takeaway-box { background: #ECFDF5; border-left: 4px solid #10B981; padding: 12px 16px; border-radius: 0 8px 8px 0; margin-top: 12px; }\n    .vocab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }\n    .vocab-card { background: #F9FAFB; padding: 12px; border-radius: 6px; }\n    .vocab-term { font-weight: 700; color: #1F2937; }\n    .vocab-def { font-size: 10pt; color: #666666; margin-top: 4px; }\n    .troubleshoot-box { background: #FEF2F2; border-left: 4px solid #EF4444; padding: 16px; border-radius: 0 8px 8px 0; }\n    .family-box { background: #ECFDF5; border-left: 4px solid #10B981; padding: 16px; border-radius: 0 8px 8px 0; }\n    .evidence-box { background: #F0F9FF; border-left: 4px solid #0EA5E9; padding: 12px 16px; border-radius: 0 8px 8px 0; font-size: 9pt; color: #0369A1; margin-top: 16px; }\n    .footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid ' + UCLA_COLORS.lightestBlue + '; text-align: center; font-size: 9pt; color: #666666; }\n    .footer-logo { color: ' + UCLA_COLORS.blue + '; font-weight: 700; }\n    @media print { body { padding: 0.5in; } .header { margin: -0.5in -0.5in 24px -0.5in; width: calc(100% + 1in); } .phase-card { page-break-inside: avoid; } }\n  </style>\n</head>\n<body>\n  <div class="header">\n    <div class="header-top">\n      <div class="logo-section">\n        <span class="pillar-icon">' + pillar.icon + '</span>\n        <div class="logo-text"><strong>Digital Futures</strong><br>UCLA CTS x CDPH</div>\n      </div>\n    </div>\n    <div class="title">' + lesson.title + '</div>\n    <div class="subtitle">' + lesson.subtitle + '</div>\n    <div class="meta-badges">\n      <span class="badge">' + form.duration + ' minutes</span>\n      <span class="badge">' + grade.label + '</span>\n      <span class="badge">' + form.activity + '</span>\n      <span class="badge">' + form.setting + '</span>\n    </div>\n    ' + (topicData && topicData.essentialQuestion ? '<div class="essential-q"><strong>Essential Question:</strong> ' + topicData.essentialQuestion + '</div>' : '') + '\n  </div>\n\n  <div class="section">\n    <h2>Learning Objectives</h2>\n    <ul class="objectives-list">\n      ' + lesson.objectives.map(function(obj, i) { return '<li><span class="obj-num">' + (i + 1) + '</span> ' + obj + '</li>'; }).join('\n      ') + '\n    </ul>\n  </div>\n\n  <div class="section">\n    <h2>Materials Needed</h2>\n    <div class="materials-grid">\n      ' + lesson.materials.map(function(m) { return '<span class="material-item">' + m + '</span>'; }).join('\n      ') + '\n    </div>\n  </div>\n\n  <div class="section">\n    <h2>Before You Begin</h2>\n    <ul class="objectives-list">\n      ' + lesson.preparation.map(function(p, i) { return '<li><span class="obj-num">' + (i + 1) + '</span> ' + p + '</li>'; }).join('\n      ') + '\n    </ul>\n  </div>\n\n  <div class="section">\n    <h2>Facilitator Tips</h2>\n    <div class="tips-box">\n      <ul style="list-style: disc; padding-left: 20px;">\n        ' + lesson.tips.map(function(t) { return '<li>' + t + '</li>'; }).join('\n        ') + '\n      </ul>\n    </div>\n  </div>\n\n  <div class="section">\n    <h2>Lesson Flow</h2>\n    ' + lesson.phases.map(function(phase) { 
+      var html = '<div class="phase-card">\n      <div class="phase-header">\n        <span class="phase-name">' + phase.name + '</span>\n        <span class="phase-time">' + phase.time + '</span>\n      </div>\n      <div class="phase-content">\n        <div class="script-label">What to Say:</div>\n        <div class="script-box">' + phase.script + '</div>';
+      if (phase.actions) {
+        html += '\n        <div class="script-label" style="margin-top: 12px;">What to Do:</div>\n        <ul class="actions-list">\n          ' + phase.actions.map(function(a) { return '<li>&#8594; ' + a + '</li>'; }).join('\n          ') + '\n        </ul>';
+      }
+      if (phase.questions) {
+        html += '\n        <div class="script-label" style="margin-top: 12px;">Discussion Questions:</div>\n        ' + phase.questions.map(function(q) { return '<div class="question-card">\n          <div class="question-text">"' + q.q + '"</div>\n          <div class="followup-text">Follow-up: ' + q.followup + '</div>\n        </div>'; }).join('\n        ');
+      }
+      if (phase.takeaway) {
+        html += '\n        <div class="takeaway-box">\n          <div style="font-weight: 600; color: #065F46; font-size: 10pt;">Key Takeaway:</div>\n          <div style="color: #047857; font-size: 10pt;">' + phase.takeaway + '</div>\n        </div>';
+      }
+      html += '\n      </div>\n    </div>';
+      return html;
+    }).join('\n    ') + '\n  </div>\n\n  <div class="section">\n    <h2>Key Vocabulary</h2>\n    <div class="vocab-grid">\n      ' + lesson.vocabulary.map(function(v) { return '<div class="vocab-card">\n        <div class="vocab-term">' + v.term + '</div>\n        <div class="vocab-def">' + v.definition + '</div>\n      </div>'; }).join('\n      ') + '\n    </div>\n  </div>\n\n  <div class="section">\n    <h2>Troubleshooting</h2>\n    <div class="troubleshoot-box">\n      ' + lesson.troubleshooting.map(function(t) { return '<div style="margin-bottom: 12px;">\n        <div style="font-weight: 600; color: #991B1B; font-size: 10pt;">' + t.problem + '</div>\n        <div style="color: #B91C1C; font-size: 10pt;">&#8594; ' + t.solution + '</div>\n      </div>'; }).join('\n      ') + '\n    </div>\n  </div>\n\n  <div class="section">\n    <h2>Family Extension</h2>\n    <div class="family-box">\n      <ul style="list-style: disc; padding-left: 20px; color: #047857;">\n        ' + lesson.familyExtension.map(function(f) { return '<li>' + f + '</li>'; }).join('\n        ') + '\n      </ul>\n    </div>\n  </div>\n\n  ' + (topicData && topicData.evidenceBasis ? '<div class="section">\n    <h2>Evidence Basis</h2>\n    <div class="evidence-box">\n      <strong>Research Foundation:</strong> ' + topicData.evidenceBasis + (topicData.equityNote ? '<br><br><strong>Equity Considerations:</strong> ' + topicData.equityNote : '') + '\n    </div>\n  </div>' : '') + '\n\n  <div class="footer">\n    <div class="footer-logo">UCLA Center for the Transformation of Schools</div>\n    <div>California Department of Public Health, Office of School Health</div>\n    <div style="margin-top: 8px;">Digital Futures: A Curriculum for Child & Youth Wellness, Safety, and Informed Use</div>\n  </div>\n</body>\n</html>';
+};
+
+export default function DigitalFuturesApp() {
+  var _React$useState = useState(1), step = _React$useState[0], setStep = _React$useState[1];
+  var _React$useState2 = useState({
+    pillar: '', grade: '', topic: null, duration: '20', activity: 'Interactive Activity', setting: 'Classroom', notes: ''
+  }), form = _React$useState2[0], setForm = _React$useState2[1];
+  var _React$useState3 = useState(null), lesson = _React$useState3[0], setLesson = _React$useState3[1];
+  var _React$useState4 = useState([]), topics = _React$useState4[0], setTopics = _React$useState4[1];
+  var _React$useState5 = useState(false), loading = _React$useState5[0], setLoading = _React$useState5[1];
+  var _React$useState6 = useState(false), loadingTopics = _React$useState6[0], setLoadingTopics = _React$useState6[1];
+  var _React$useState7 = useState(null), error = _React$useState7[0], setError = _React$useState7[1];
+  var _React$useState8 = useState(false), copied = _React$useState8[0], setCopied = _React$useState8[1];
+
+  var updateForm = function(key, value) {
+    setForm(function(prev) {
+      var updated = Object.assign({}, prev);
+      updated[key] = value;
+      if (key === 'pillar' || key === 'grade' || key === 'setting' || key === 'duration') {
+        updated.topic = null;
+        setTopics([]);
+      }
+      return updated;
+    });
+  };
+
+  var canGenerateTopics = form.pillar && form.grade;
+  var canGenerateLesson = form.pillar && form.grade && form.topic;
+
+  // Generate topics using AI
+  var generateTopics = async function() {
+    setLoadingTopics(true);
+    setError(null);
+    setTopics([]);
+
+    var prompt = buildTopicGenerationPrompt(form.pillar, form.grade, form.setting, form.duration);
+
+    try {
+      var response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2000,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      var responseText = await response.text();
+      if (!response.ok) {
+        throw new Error('API error: ' + response.status);
+      }
+
+      var data = JSON.parse(responseText);
+      var text = '';
+      if (data.content && Array.isArray(data.content)) {
+        for (var i = 0; i < data.content.length; i++) {
+          if (data.content[i].text) {
+            text += data.content[i].text;
+          }
+        }
+      }
+
+      if (!text) {
+        throw new Error('No response received');
+      }
+
+      var jsonStr = text.trim();
+      if (jsonStr.indexOf('```') !== -1) {
+        var match = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (match) jsonStr = match[1].trim();
+      }
+
+      var jsonStart = jsonStr.indexOf('[');
+      var jsonEnd = jsonStr.lastIndexOf(']');
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        jsonStr = jsonStr.substring(jsonStart, jsonEnd + 1);
+      }
+
+      var parsed = JSON.parse(jsonStr);
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        throw new Error('Invalid topics format');
+      }
+
+      setTopics(parsed);
+    } catch (err) {
+      setError('Failed to generate topics: ' + (err.message || 'Unknown error'));
+    } finally {
+      setLoadingTopics(false);
+    }
+  };
+
+  // Generate lesson plan
+  var generateLesson = async function() {
+    setLoading(true);
+    setError(null);
+
+    var prompt = buildLessonGenerationPrompt(
+      form.topic,
+      form.pillar,
+      form.grade,
+      form.duration,
+      form.setting,
+      form.activity,
+      form.notes
+    );
+
+    try {
+      var response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 4000,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      var responseText = await response.text();
+      if (!response.ok) {
+        throw new Error('API error: ' + response.status);
+      }
+
+      var data = JSON.parse(responseText);
+      var text = '';
+      if (data.content && Array.isArray(data.content)) {
+        for (var i = 0; i < data.content.length; i++) {
+          if (data.content[i].text) {
+            text += data.content[i].text;
+          }
+        }
+      }
+
+      if (!text) {
+        throw new Error('No response received');
+      }
+
+      var jsonStr = text.trim();
+      if (jsonStr.indexOf('```') !== -1) {
+        var match = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (match) jsonStr = match[1].trim();
+      }
+
+      var jsonStart = jsonStr.indexOf('{');
+      var jsonEnd = jsonStr.lastIndexOf('}');
+      if (jsonStart === -1 || jsonEnd === -1 || jsonEnd <= jsonStart) {
+        throw new Error('No valid JSON found');
+      }
+      jsonStr = jsonStr.substring(jsonStart, jsonEnd + 1);
+
+      var parsed = JSON.parse(jsonStr);
+      if (!parsed.title || !parsed.phases) {
+        throw new Error('Incomplete lesson plan');
+      }
+
+      parsed.objectives = parsed.objectives || [];
+      parsed.materials = parsed.materials || [];
+      parsed.preparation = parsed.preparation || [];
+      parsed.tips = parsed.tips || [];
+      parsed.vocabulary = parsed.vocabulary || [];
+      parsed.troubleshooting = parsed.troubleshooting || [];
+      parsed.familyExtension = parsed.familyExtension || [];
+      parsed.assessmentIdeas = parsed.assessmentIdeas || [];
+
+      setLesson(parsed);
+      setStep(3);
+    } catch (err) {
+      setError('Failed to generate lesson: ' + (err.message || 'Unknown error'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  var downloadHTML = function() {
+    if (!lesson) return;
+    var html = generateHTML(lesson, form, form.topic);
+    var blob = new Blob([html], { type: 'text/html' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = lesson.title.replace(/[^a-z0-9]/gi, '_') + '_Lesson_Plan.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  var printLesson = function() {
+    if (!lesson) return;
+    var html = generateHTML(lesson, form, form.topic);
+    var printWindow = window.open('', '_blank');
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.onload = function() { printWindow.print(); };
+  };
+
+  var copyLesson = function() {
+    if (!lesson) return;
+    var text = '# ' + lesson.title + '\n' + lesson.subtitle + '\n\n';
+    if (form.topic && form.topic.essentialQuestion) {
+      text += '**Essential Question:** ' + form.topic.essentialQuestion + '\n\n';
+    }
+    text += '## Learning Objectives\n' + lesson.objectives.map(function(o, i) { return (i + 1) + '. ' + o; }).join('\n') + '\n\n';
+    text += '## Materials\n' + lesson.materials.map(function(m) { return '- ' + m; }).join('\n') + '\n\n';
+    text += '## Preparation\n' + lesson.preparation.map(function(p, i) { return (i + 1) + '. ' + p; }).join('\n') + '\n\n';
+    text += '## Lesson Flow\n';
+    lesson.phases.forEach(function(p) {
+      text += '\n### ' + p.name + ' (' + p.time + ')\n**Script:**\n' + p.script + '\n';
+      if (p.actions) text += '\n**Actions:**\n' + p.actions.map(function(a) { return '- ' + a; }).join('\n') + '\n';
+      if (p.questions) text += '\n**Questions:**\n' + p.questions.map(function(q) { return '- ' + q.q + ' (Follow-up: ' + q.followup + ')'; }).join('\n') + '\n';
+      if (p.takeaway) text += '\n**Key Takeaway:** ' + p.takeaway + '\n';
+    });
+    text += '\n## Vocabulary\n' + lesson.vocabulary.map(function(v) { return '- **' + v.term + '**: ' + v.definition; }).join('\n') + '\n';
+    text += '\n## Family Extension\n' + lesson.familyExtension.map(function(f) { return '- ' + f; }).join('\n');
+    
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(function() { setCopied(false); }, 2000);
+  };
+
+  // Step 1: Configure
+  if (step === 1) {
+    return (
+      <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, ' + UCLA_COLORS.lightestBlue + ' 0%, white 50%, ' + UCLA_COLORS.lightestBlue + ' 100%)' }}>
+        <div className="max-w-2xl mx-auto p-4">
+          <header className="text-center mb-6 pt-4">
+            <div className="inline-flex items-center gap-3 bg-white px-5 py-3 rounded-xl shadow-sm mb-3" style={{ borderLeft: '4px solid ' + UCLA_COLORS.blue }}>
+              <BookOpen className="w-6 h-6" style={{ color: UCLA_COLORS.blue }} />
+              <div className="text-left">
+                <div className="font-bold" style={{ color: UCLA_COLORS.blue }}>Digital Futures</div>
+                <div className="text-xs" style={{ color: UCLA_COLORS.caption }}>Evidence-Based Lesson Generator</div>
+              </div>
+            </div>
+            <h1 className="text-2xl font-bold" style={{ color: UCLA_COLORS.darkestBlue }}>Create Your Lesson</h1>
+            <p style={{ color: UCLA_COLORS.caption }} className="mt-1 text-sm">UCLA CTS x CDPH Office of School Health</p>
+          </header>
+
+          <div className="space-y-5">
+            {/* Pillar Selection */}
+            <section className="bg-white rounded-xl shadow-sm p-4" style={{ borderTop: '3px solid ' + UCLA_COLORS.blue }}>
+              <h2 className="font-semibold mb-3 flex items-center gap-2 text-sm" style={{ color: UCLA_COLORS.darkestBlue }}>
+                <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs text-white" style={{ background: UCLA_COLORS.blue }}>1</span>
+                Choose a Pillar
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {Object.values(PILLARS).map(function(p) {
+                  return (
+                    <button key={p.id} onClick={function() { updateForm('pillar', p.id); }}
+                      className="p-3 rounded-lg border-2 text-left transition-all"
+                      style={{ 
+                        borderColor: form.pillar === p.id ? p.color : '#E5E7EB',
+                        backgroundColor: form.pillar === p.id ? p.color + '15' : 'white'
+                      }}>
+                      <div className="text-xl">{p.icon}</div>
+                      <div className="font-medium text-sm mt-1" style={{ color: UCLA_COLORS.text }}>{p.name}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Grade Selection */}
+            <section className="bg-white rounded-xl shadow-sm p-4" style={{ borderTop: '3px solid ' + UCLA_COLORS.darkBlue }}>
+              <h2 className="font-semibold mb-3 flex items-center gap-2 text-sm" style={{ color: UCLA_COLORS.darkestBlue }}>
+                <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs text-white" style={{ background: UCLA_COLORS.darkBlue }}>2</span>
+                Select Grade Level
+              </h2>
+              <div className="grid grid-cols-3 gap-2">
+                {Object.entries(GRADES).map(function(entry) {
+                  var key = entry[0], g = entry[1];
+                  return (
+                    <button key={key} onClick={function() { updateForm('grade', key); }}
+                      className="p-3 rounded-lg border-2 text-center transition-all"
+                      style={{ 
+                        borderColor: form.grade === key ? UCLA_COLORS.darkBlue : '#E5E7EB',
+                        backgroundColor: form.grade === key ? UCLA_COLORS.lightestBlue : 'white'
+                      }}>
+                      <div className="font-medium text-sm" style={{ color: UCLA_COLORS.text }}>{g.label.split(' ')[0]}</div>
+                      <div className="text-xs" style={{ color: UCLA_COLORS.caption }}>{g.ages}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Settings (shown after pillar + grade) */}
+            {canGenerateTopics && (
+              <section className="bg-white rounded-xl shadow-sm p-4" style={{ borderTop: '3px solid ' + UCLA_COLORS.gold }}>
+                <h2 className="font-semibold mb-3 flex items-center gap-2 text-sm" style={{ color: UCLA_COLORS.darkestBlue }}>
+                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs" style={{ background: UCLA_COLORS.gold, color: UCLA_COLORS.darkestBlue }}>3</span>
+                  Lesson Settings
+                </h2>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium mb-1 block" style={{ color: UCLA_COLORS.caption }}>Duration</label>
+                    <select value={form.duration} onChange={function(e) { updateForm('duration', e.target.value); }}
+                      className="w-full p-2 border rounded-lg text-sm" style={{ borderColor: '#E5E7EB' }}>
+                      {DURATIONS.map(function(d) { return <option key={d} value={d}>{d} minutes</option>; })}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium mb-1 block" style={{ color: UCLA_COLORS.caption }}>Setting</label>
+                    <select value={form.setting} onChange={function(e) { updateForm('setting', e.target.value); }}
+                      className="w-full p-2 border rounded-lg text-sm" style={{ borderColor: '#E5E7EB' }}>
+                      {SETTINGS.map(function(s) { return <option key={s} value={s}>{s}</option>; })}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Generate Topics Button */}
+                <button onClick={generateTopics} disabled={loadingTopics}
+                  className="w-full mt-4 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-all"
+                  style={{ background: '#8A69D4', color: 'white', opacity: loadingTopics ? 0.7 : 1 }}>
+                  {loadingTopics ? (
+                    <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Generating Topics...</span>
+                  ) : (
+                    <span className="flex items-center gap-2"><Sparkles className="w-4 h-4" /> Generate Evidence-Based Topics</span>
+                  )}
+                </button>
+
+                {/* Info about dynamic generation */}
+                <div className="mt-3 p-3 rounded-lg flex items-start gap-2" style={{ background: '#F0F9FF', border: '1px solid #BAE6FD' }}>
+                  <Info className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#0369A1' }} />
+                  <p className="text-xs" style={{ color: '#0369A1' }}>
+                    Topics are generated using current research (2023-2025) and tailored to the developmental needs and digital realities of {GRADES[form.grade].label} students.
+                  </p>
+                </div>
+              </section>
+            )}
+
+            {/* Topics Section */}
+            {topics.length > 0 && (
+              <section className="bg-white rounded-xl shadow-sm p-4" style={{ borderTop: '3px solid #8A69D4' }}>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="font-semibold flex items-center gap-2 text-sm" style={{ color: UCLA_COLORS.darkestBlue }}>
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs text-white" style={{ background: '#8A69D4' }}>4</span>
+                    Select a Topic
+                  </h2>
+                  <button onClick={generateTopics} disabled={loadingTopics}
+                    className="text-xs flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100"
+                    style={{ color: UCLA_COLORS.caption }}>
+                    <RefreshCw className="w-3 h-3" /> Regenerate
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {topics.map(function(t, i) {
+                    var isSelected = form.topic && form.topic.title === t.title;
+                    return (
+                      <button key={i} onClick={function() { updateForm('topic', t); }}
+                        className="w-full p-3 rounded-lg border-2 text-left transition-all"
+                        style={{ 
+                          borderColor: isSelected ? '#8A69D4' : '#E5E7EB',
+                          backgroundColor: isSelected ? '#F3E8FF' : 'white'
+                        }}>
+                        <div className="font-medium text-sm" style={{ color: UCLA_COLORS.text }}>{t.title}</div>
+                        <div className="text-xs mt-1" style={{ color: UCLA_COLORS.caption }}>{t.description}</div>
+                        {isSelected && t.essentialQuestion && (
+                          <div className="mt-2 text-xs p-2 rounded" style={{ background: '#EDE9FE', color: '#6B21A8' }}>
+                            <strong>Essential Question:</strong> {t.essentialQuestion}
+                          </div>
+                        )}
+                        {isSelected && t.skills && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {t.skills.map(function(s, j) {
+                              return <span key={j} className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#DDD6FE', color: '#5B21B6' }}>{s}</span>;
+                            })}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* Activity Type & Notes (shown after topic selected) */}
+            {form.topic && (
+              <section className="bg-white rounded-xl shadow-sm p-4" style={{ borderTop: '3px solid #10B981' }}>
+                <h2 className="font-semibold mb-3 flex items-center gap-2 text-sm" style={{ color: UCLA_COLORS.darkestBlue }}>
+                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs text-white" style={{ background: '#10B981' }}>5</span>
+                  Customize Activity
+                </h2>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium mb-1 block" style={{ color: UCLA_COLORS.caption }}>Activity Type</label>
+                    <select value={form.activity} onChange={function(e) { updateForm('activity', e.target.value); }}
+                      className="w-full p-2 border rounded-lg text-sm" style={{ borderColor: '#E5E7EB' }}>
+                      {ACTIVITY_TYPES.map(function(a) { return <option key={a} value={a}>{a}</option>; })}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium mb-1 block" style={{ color: UCLA_COLORS.caption }}>Additional Notes (optional)</label>
+                    <input type="text" value={form.notes} onChange={function(e) { updateForm('notes', e.target.value); }}
+                      placeholder="E.g., students have limited tech access, focus on specific platform..."
+                      className="w-full p-2 border rounded-lg text-sm" style={{ borderColor: '#E5E7EB' }} />
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* Error Display */}
+            {error && (
+              <div className="rounded-lg p-3 flex items-start gap-2" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                <div className="text-sm text-red-700">{error}</div>
+              </div>
+            )}
+
+            {/* Continue Button */}
+            <button onClick={function() { setStep(2); }} disabled={!canGenerateLesson}
+              className="w-full py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all shadow-lg"
+              style={{ 
+                background: canGenerateLesson ? UCLA_COLORS.blue : '#E5E7EB',
+                color: canGenerateLesson ? 'white' : '#9CA3AF',
+                cursor: canGenerateLesson ? 'pointer' : 'not-allowed'
+              }}>
+              Continue to Generate Lesson <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 2: Confirm & Generate
+  if (step === 2) {
+    var pillar = PILLARS[form.pillar];
+    var grade = GRADES[form.grade];
+
+    return (
+      <div className="min-h-screen p-4" style={{ background: 'linear-gradient(135deg, ' + UCLA_COLORS.lightestBlue + ' 0%, white 100%)' }}>
+        <div className="max-w-lg mx-auto pt-6">
+          <div className="bg-white rounded-xl shadow-lg p-5" style={{ borderTop: '4px solid ' + UCLA_COLORS.blue }}>
+            <h2 className="text-lg font-bold mb-4" style={{ color: UCLA_COLORS.darkestBlue }}>Ready to Generate Your Lesson</h2>
+            
+            <div className="space-y-3 mb-5">
+              <div className="flex items-start gap-3 p-3 rounded-lg" style={{ background: UCLA_COLORS.lightestBlue }}>
+                <span className="text-2xl">{pillar.icon}</span>
+                <div className="flex-1">
+                  <div className="text-xs" style={{ color: UCLA_COLORS.caption }}>Pillar</div>
+                  <div className="font-medium text-sm" style={{ color: UCLA_COLORS.text }}>{pillar.name}</div>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-3 p-3 rounded-lg" style={{ background: UCLA_COLORS.lightestBlue }}>
+                <Users className="w-6 h-6" style={{ color: UCLA_COLORS.blue }} />
+                <div className="flex-1">
+                  <div className="text-xs" style={{ color: UCLA_COLORS.caption }}>Grade Band</div>
+                  <div className="font-medium text-sm" style={{ color: UCLA_COLORS.text }}>{grade.label}</div>
+                </div>
+              </div>
+              
+              <div className="p-3 rounded-lg" style={{ background: '#F3E8FF', border: '1px solid #DDD6FE' }}>
+                <div className="text-xs font-medium mb-1" style={{ color: '#6B21A8' }}>Selected Topic</div>
+                <div className="font-semibold text-sm" style={{ color: '#5B21B6' }}>{form.topic.title}</div>
+                <div className="text-xs mt-1" style={{ color: '#7C3AED' }}>{form.topic.description}</div>
+                {form.topic.essentialQuestion && (
+                  <div className="mt-2 pt-2 border-t" style={{ borderColor: '#DDD6FE' }}>
+                    <div className="text-xs italic" style={{ color: '#6B21A8' }}>
+                      <strong>Essential Question:</strong> {form.topic.essentialQuestion}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: UCLA_COLORS.lightestBlue }}>
+                <Clock className="w-6 h-6" style={{ color: UCLA_COLORS.blue }} />
+                <div>
+                  <div className="text-xs" style={{ color: UCLA_COLORS.caption }}>Format</div>
+                  <div className="font-medium text-sm" style={{ color: UCLA_COLORS.text }}>{form.duration} min | {form.activity} | {form.setting}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg p-3 mb-5" style={{ background: '#ECFDF5', borderLeft: '4px solid #10B981' }}>
+              <h3 className="font-medium text-sm mb-2" style={{ color: '#065F46' }}>Your lesson will include:</h3>
+              <ul className="text-xs space-y-1" style={{ color: '#047857' }}>
+                <li>&#10003; Word-for-word facilitator scripts</li>
+                <li>&#10003; Discussion questions with follow-ups</li>
+                <li>&#10003; Troubleshooting for common challenges</li>
+                <li>&#10003; Family extension activities</li>
+                <li>&#10003; Evidence basis and equity considerations</li>
+                <li>&#10003; Downloadable, print-ready document</li>
+              </ul>
+            </div>
+
+            {error && (
+              <div className="rounded-lg p-3 mb-4 flex items-start gap-2" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                <div className="text-sm text-red-700">{error}</div>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button onClick={function() { setStep(1); }} 
+                className="flex-1 py-3 border rounded-lg font-medium text-sm hover:bg-gray-50"
+                style={{ borderColor: '#E5E7EB', color: UCLA_COLORS.text }}>
+                Back
+              </button>
+              <button onClick={generateLesson} disabled={loading}
+                className="flex-1 py-3 rounded-lg font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                style={{ background: UCLA_COLORS.blue, color: 'white' }}>
+                {loading ? (
+                  <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Generating...</span>
+                ) : (
+                  <span className="flex items-center gap-2"><Sparkles className="w-4 h-4" /> Generate Lesson</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 3: View Lesson
+  if (step === 3 && lesson) {
+    var pillar = PILLARS[form.pillar];
+    
+    return (
+      <div className="min-h-screen p-4" style={{ background: '#F3F4F6' }}>
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-center justify-between mb-4 bg-white rounded-lg shadow-sm p-3">
+            <button onClick={function() { setStep(1); setLesson(null); }} 
+              className="text-sm hover:underline" style={{ color: UCLA_COLORS.blue }}>
+              &#8592; New Lesson
+            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={copyLesson} 
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                style={{ background: UCLA_COLORS.lightestBlue, color: UCLA_COLORS.darkBlue }}>
+                {copied ? <Check className="w-3 h-3" style={{ color: '#10B981' }} /> : <Copy className="w-3 h-3" />}
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+              <button onClick={downloadHTML} 
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
+                style={{ background: UCLA_COLORS.blue, color: 'white' }}>
+                <Download className="w-3 h-3" /> Download
+              </button>
+              <button onClick={printLesson} 
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
+                style={{ background: UCLA_COLORS.darkBlue, color: 'white' }}>
+                <FileDown className="w-3 h-3" /> Print
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            {/* Header */}
+            <div className="text-white p-5" style={{ background: 'linear-gradient(135deg, ' + UCLA_COLORS.blue + ' 0%, ' + UCLA_COLORS.darkBlue + ' 100%)' }}>
+              <div className="flex items-start gap-3">
+                <span className="text-3xl">{pillar.icon}</span>
+                <div className="flex-1">
+                  <h1 className="text-lg font-bold">{lesson.title}</h1>
+                  <p className="text-sm opacity-90">{lesson.subtitle}</p>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-3 flex-wrap">
+                <span className="px-2 py-0.5 rounded text-xs" style={{ background: 'rgba(255,255,255,0.2)' }}>{form.duration} min</span>
+                <span className="px-2 py-0.5 rounded text-xs" style={{ background: 'rgba(255,255,255,0.2)' }}>{GRADES[form.grade].label}</span>
+                <span className="px-2 py-0.5 rounded text-xs" style={{ background: 'rgba(255,255,255,0.2)' }}>{form.activity}</span>
+              </div>
+              {form.topic && form.topic.essentialQuestion && (
+                <div className="mt-3 p-2 rounded" style={{ background: 'rgba(255,209,0,0.25)', borderLeft: '3px solid ' + UCLA_COLORS.gold }}>
+                  <p className="text-xs italic"><strong>Essential Question:</strong> {form.topic.essentialQuestion}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-5 space-y-5">
+              {/* Objectives */}
+              <section>
+                <h2 className="font-bold text-sm mb-2 flex items-center gap-2" style={{ color: UCLA_COLORS.blue }}>
+                  <Target className="w-4 h-4" /> Learning Objectives
+                </h2>
+                <ul className="space-y-1">
+                  {lesson.objectives.map(function(o, i) {
+                    return (
+                      <li key={i} className="flex items-start gap-2 text-sm" style={{ color: UCLA_COLORS.text }}>
+                        <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs flex-shrink-0"
+                          style={{ background: UCLA_COLORS.lightestBlue, color: UCLA_COLORS.blue }}>{i+1}</span>
+                        {o}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+
+              {/* Materials */}
+              <section>
+                <h2 className="font-bold text-sm mb-2" style={{ color: UCLA_COLORS.blue }}>Materials</h2>
+                <div className="flex flex-wrap gap-2">
+                  {lesson.materials.map(function(m, i) {
+                    return (
+                      <span key={i} className="px-2 py-1 rounded-full text-xs"
+                        style={{ background: UCLA_COLORS.lightestBlue, border: '1px solid ' + UCLA_COLORS.lightBlue }}>{m}</span>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {/* Preparation */}
+              <section>
+                <h2 className="font-bold text-sm mb-2" style={{ color: UCLA_COLORS.blue }}>Before You Begin</h2>
+                <ol className="space-y-1">
+                  {lesson.preparation.map(function(p, i) {
+                    return (
+                      <li key={i} className="flex items-start gap-2 text-sm" style={{ color: UCLA_COLORS.text }}>
+                        <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs flex-shrink-0"
+                          style={{ background: '#D1FAE5', color: '#059669' }}>{i+1}</span>
+                        {p}
+                      </li>
+                    );
+                  })}
+                </ol>
+              </section>
+
+              {/* Tips */}
+              <section className="rounded-lg p-3" style={{ background: '#F3E8FF', borderLeft: '4px solid #8A69D4' }}>
+                <h2 className="font-bold text-sm mb-2" style={{ color: '#6B21A8' }}>Facilitator Tips</h2>
+                <ul className="space-y-1">
+                  {lesson.tips.map(function(t, i) {
+                    return <li key={i} className="text-xs" style={{ color: '#7C3AED' }}>&#8226; {t}</li>;
+                  })}
+                </ul>
+              </section>
+
+              {/* Lesson Flow */}
+              <section>
+                <h2 className="font-bold text-sm mb-3" style={{ color: UCLA_COLORS.blue }}>Lesson Flow</h2>
+                <div className="space-y-3">
+                  {lesson.phases.map(function(phase, i) {
+                    return (
+                      <div key={i} className="border rounded-lg overflow-hidden" style={{ borderColor: '#E5E7EB' }}>
+                        <div className="px-3 py-2 flex justify-between items-center" style={{ background: '#F3F4F6' }}>
+                          <h3 className="font-semibold text-sm" style={{ color: UCLA_COLORS.darkestBlue }}>{phase.name}</h3>
+                          <span className="text-xs px-2 py-0.5 rounded bg-white" style={{ color: UCLA_COLORS.caption }}>{phase.time}</span>
+                        </div>
+                        <div className="p-3 space-y-3">
+                          <div>
+                            <h4 className="text-xs font-semibold mb-1" style={{ color: UCLA_COLORS.darkBlue }}>What to Say:</h4>
+                            <div className="p-2 text-xs whitespace-pre-wrap rounded-r"
+                              style={{ background: UCLA_COLORS.lightestBlue, borderLeft: '3px solid ' + UCLA_COLORS.blue, color: UCLA_COLORS.text }}>
+                              {phase.script}
+                            </div>
+                          </div>
+                          
+                          {phase.actions && phase.actions.length > 0 && (
+                            <div>
+                              <h4 className="text-xs font-semibold mb-1" style={{ color: UCLA_COLORS.darkBlue }}>What to Do:</h4>
+                              <ul className="space-y-1">
+                                {phase.actions.map(function(a, j) {
+                                  return (
+                                    <li key={j} className="text-xs flex items-start gap-1" style={{ color: UCLA_COLORS.text }}>
+                                      <span style={{ color: UCLA_COLORS.blue }}>&#8594;</span> {a}
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </div>
+                          )}
+
+                          {phase.questions && phase.questions.length > 0 && (
+                            <div>
+                              <h4 className="text-xs font-semibold mb-1" style={{ color: UCLA_COLORS.darkBlue }}>Discussion Questions:</h4>
+                              <div className="space-y-2">
+                                {phase.questions.map(function(q, j) {
+                                  return (
+                                    <div key={j} className="rounded p-2" style={{ background: '#F9FAFB' }}>
+                                      <div className="font-medium text-xs" style={{ color: UCLA_COLORS.text }}>"{q.q}"</div>
+                                      <div className="text-xs mt-1" style={{ color: UCLA_COLORS.caption }}>Follow-up: {q.followup}</div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {phase.takeaway && (
+                            <div className="rounded-r p-2" style={{ background: '#ECFDF5', borderLeft: '3px solid #10B981' }}>
+                              <h4 className="text-xs font-semibold" style={{ color: '#065F46' }}>Key Takeaway:</h4>
+                              <p className="text-xs" style={{ color: '#047857' }}>{phase.takeaway}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {/* Vocabulary */}
+              <section>
+                <h2 className="font-bold text-sm mb-2" style={{ color: UCLA_COLORS.blue }}>Key Vocabulary</h2>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  {lesson.vocabulary.map(function(v, i) {
+                    return (
+                      <div key={i} className="rounded p-2" style={{ background: '#F9FAFB' }}>
+                        <div className="font-semibold text-sm" style={{ color: UCLA_COLORS.darkestBlue }}>{v.term}</div>
+                        <div className="text-xs" style={{ color: UCLA_COLORS.caption }}>{v.definition}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {/* Troubleshooting */}
+              <section className="rounded-lg p-3" style={{ background: '#FEF2F2', borderLeft: '4px solid #EF4444' }}>
+                <h2 className="font-bold text-sm mb-2" style={{ color: '#991B1B' }}>Troubleshooting</h2>
+                <div className="space-y-2">
+                  {lesson.troubleshooting.map(function(t, i) {
+                    return (
+                      <div key={i}>
+                        <div className="font-medium text-xs" style={{ color: '#991B1B' }}>{t.problem}</div>
+                        <div className="text-xs" style={{ color: '#B91C1C' }}>&#8594; {t.solution}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {/* Family Extension */}
+              <section className="rounded-lg p-3" style={{ background: '#ECFDF5', borderLeft: '4px solid #10B981' }}>
+                <h2 className="font-bold text-sm mb-2" style={{ color: '#065F46' }}>Family Extension</h2>
+                <ul className="space-y-1">
+                  {lesson.familyExtension.map(function(f, i) {
+                    return <li key={i} className="text-xs" style={{ color: '#047857' }}>&#8226; {f}</li>;
+                  })}
+                </ul>
+              </section>
+
+              {/* Evidence Basis */}
+              {form.topic && form.topic.evidenceBasis && (
+                <section className="rounded-lg p-3" style={{ background: '#F0F9FF', borderLeft: '4px solid #0EA5E9' }}>
+                  <h2 className="font-bold text-sm mb-2" style={{ color: '#0369A1' }}>Evidence Basis</h2>
+                  <p className="text-xs" style={{ color: '#0369A1' }}>{form.topic.evidenceBasis}</p>
+                  {form.topic.equityNote && (
+                    <p className="text-xs mt-2" style={{ color: '#0369A1' }}><strong>Equity Considerations:</strong> {form.topic.equityNote}</p>
+                  )}
+                </section>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="border-t px-5 py-3 text-center" style={{ background: UCLA_COLORS.lightestBlue }}>
+              <div className="font-semibold text-sm" style={{ color: UCLA_COLORS.blue }}>UCLA Center for the Transformation of Schools</div>
+              <div className="text-xs" style={{ color: UCLA_COLORS.caption }}>California Department of Public Health, Office of School Health</div>
+              <div className="text-xs mt-1" style={{ color: UCLA_COLORS.caption }}>Digital Futures: A Curriculum for Child & Youth Wellness, Safety, and Informed Use</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
