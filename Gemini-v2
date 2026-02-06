@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Futures: Grade-Banded Lesson Plan Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <!-- Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+
+        /* Branding Colors */
+        .bg-ucla-blue { background-color: #2774AE; }
+        .bg-ucla-gold { background-color: #FFD100; }
+        .bg-ucla-dark { background-color: #003B5C; }
+        
+        .text-ucla-blue { color: #2774AE; }
+        .text-ucla-gold { color: #FFD100; }
+        .text-ucla-dark { color: #003B5C; }
+        
+        .border-ucla-blue { border-color: #2774AE; }
+        .border-ucla-gold { border-color: #FFD100; }
+
+        /* Typography */
+        .doc-font { font-family: 'Merriweather', serif; }
+        .sans-font { font-family: 'Inter', sans-serif; }
+
+        /* Script Tags for Lesson Plan */
+        .script-do { 
+            color: #2774AE; 
+            font-weight: 800; 
+            text-transform: uppercase; 
+            font-size: 0.70rem; 
+            letter-spacing: 0.05em; 
+            background: #eef6fc;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 6px;
+            display: inline-block;
+            margin-bottom: 4px;
+            border: 1px solid #dae9f5;
+        }
+        .script-say { 
+            color: #D68100; 
+            font-weight: 800; 
+            text-transform: uppercase; 
+            font-size: 0.70rem; 
+            letter-spacing: 0.05em; 
+            background: #fff8e1;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 6px;
+            display: inline-block;
+            margin-bottom: 4px;
+            border: 1px solid #faeab8;
+        }
+
+        /* Loader */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #2774AE;
+            width: 16px;
+            height: 16px;
+            -webkit-animation: spin 1s linear infinite; /* Safari */
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* PRINT STYLES - CRITICAL FOR PDF GENERATION */
+        @media print {
+            body {
+                background-color: white;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            /* Hide UI elements */
+            header, .sidebar, .action-bar, #ai-tools-container, footer, #parent-note-section {
+                display: none !important;
+            }
+
+            /* Main container reset */
+            main {
+                padding: 0 !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+            }
+
+            .lg\:col-span-8 {
+                width: 100% !important;
+                grid-column: span 12 / span 12 !important;
+            }
+
+            /* Lesson Output specific styling for print */
+            #lesson-output {
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                min-height: auto !important;
+            }
+
+            /* Ensure background colors print */
+            .bg-blue-50 { background-color: #eff6ff !important; }
+            .bg-purple-50 { background-color: #faf5ff !important; }
+            .bg-gray-50 { background-color: #f9fafb !important; }
+            .bg-yellow-50 { background-color: #fefce8 !important; }
+            
+            /* Show print logo */
+            #print-logo {
+                display: block !important;
+            }
+            
+            /* Ensure text contrast */
+            p, h1, h2, h3, h4, li {
+                color: #000 !important;
+            }
+            .text-ucla-blue { color: #2774AE !important; }
+            .text-ucla-gold { color: #D68100 !important; } /* Darker gold for print readability */
+            
+            /* Page breaks */
+            .break-inside-avoid {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex flex-col">
+                    <h1 class="text-xl font-bold text-ucla-dark leading-tight">Digital Futures</h1>
+                    <p class="text-xs text-gray-500 uppercase tracking-wide">UCLA CTS & CDPH Office of School Health</p>
+                </div>
+                <div class="flex items-center gap-2">
+                   <span class="px-3 py-1 rounded-full bg-blue-100 text-ucla-blue text-xs font-semibold border border-blue-200">v5.3 Research-Grounded</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- LEFT COLUMN: Controls -->
+            <div class="lg:col-span-4 space-y-6 sidebar">
+                
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <i data-lucide="sliders" class="w-5 h-5 text-ucla-blue"></i> Lesson Configuration
+                    </h2>
+
+                    <form id="generator-form" class="space-y-5">
+                        
+                        <!-- 1. Pillar Selection -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">1. Select Pillar</label>
+                            <select id="pillar-select" class="w-full rounded-md border-gray-300 border p-2 focus:ring-2 focus:ring-ucla-blue focus:outline-none transition-all">
+                                <option value="p1">Pillar 1: Protection & Habits</option>
+                                <option value="p2">Pillar 2: Self & Feelings</option>
+                                <option value="p3">Pillar 3: Relationships</option>
+                                <option value="p4">Pillar 4: Systems</option>
+                                <option value="p5">Pillar 5: Agency & Action</option>
+                            </select>
+                            <p id="pillar-desc" class="text-xs text-gray-500 mt-1">Focus: Healthy boundaries, sleep, and privacy.</p>
+
+                            <!-- Transparency Toggle -->
+                            <div class="mt-2">
+                                <button type="button" id="toggle-source-btn" class="text-xs text-ucla-blue font-medium flex items-center hover:underline">
+                                    <i data-lucide="eye" class="w-3 h-3 mr-1"></i> View/Edit Research Context
+                                </button>
+                                <div id="source-context-container" class="hidden mt-2">
+                                    <textarea id="source-context-text" rows="6" class="w-full text-xs p-2 border border-gray-300 rounded bg-gray-50 focus:bg-white focus:ring-1 focus:ring-ucla-blue"></textarea>
+                                    <p class="text-[10px] text-gray-400 mt-1">Grounded in Haidt, Twenge, & CA Legislation (AB 3216).</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Grade Band Selection -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">2. Select Grade Band</label>
+                            <select id="grade-select" class="w-full rounded-md border-gray-300 border p-2 focus:ring-2 focus:ring-ucla-blue focus:outline-none">
+                                <option value="tk-2">Grades TK-2 (Early Elementary)</option>
+                                <option value="3-5">Grades 3-5 (Upper Elementary)</option>
+                                <option value="6-8">Grades 6-8 (Middle School)</option>
+                                <option value="9-12">Grades 9-12 (High School)</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">AI tailors content to developmental stages.</p>
+                        </div>
+
+                        <!-- 3. Smart Topic Selection -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">3. Select Topic</label>
+                            
+                            <!-- AI Topic Discovery Button -->
+                            <button type="button" id="discover-topics-btn" class="w-full mb-3 bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold py-2 px-3 rounded shadow-sm hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2 text-sm">
+                                <i data-lucide="search" class="w-4 h-4"></i> Find Timely & Trending Topics
+                            </button>
+                            
+                            <select id="topic-select" class="w-full rounded-md border-gray-300 border p-2 focus:ring-2 focus:ring-ucla-blue focus:outline-none">
+                                <!-- Populated by JS based on Pillar & Band -->
+                            </select>
+                            <p id="topic-helper" class="text-xs text-gray-500 mt-1">Standard topics loaded. Click 'Find Timely Topics' for AI suggestions.</p>
+                        </div>
+
+                        <!-- 4. Duration -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">4. Duration</label>
+                            <div class="flex gap-2">
+                                <button type="button" class="duration-btn flex-1 bg-ucla-blue text-white py-2 rounded text-sm font-medium border border-ucla-blue" data-value="20">20 min</button>
+                                <button type="button" class="duration-btn flex-1 bg-white text-gray-700 py-2 rounded text-sm font-medium border border-gray-300 hover:bg-gray-50" data-value="30">30 min</button>
+                                <button type="button" class="duration-btn flex-1 bg-white text-gray-700 py-2 rounded text-sm font-medium border border-gray-300 hover:bg-gray-50" data-value="45">45 min</button>
+                            </div>
+                            <input type="hidden" id="duration-input" value="20">
+                        </div>
+
+                        <button type="button" id="generate-btn" class="w-full bg-ucla-gold text-ucla-dark font-bold py-3 px-4 rounded shadow-md hover:bg-yellow-400 transition-colors flex items-center justify-center gap-2 mt-4">
+                            <i data-lucide="sparkles" class="w-5 h-5"></i> Generate Lesson Plan
+                        </button>
+                    </form>
+                </div>
+
+                <!-- AI Enhancement Section -->
+                <div id="ai-tools-container" class="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl shadow-sm p-6 border border-purple-100 hidden">
+                    <h2 class="text-lg font-semibold text-purple-900 mb-2 flex items-center gap-2">
+                        <i data-lucide="wand-2" class="w-5 h-5 text-purple-600"></i> AI Remix
+                    </h2>
+                    <p class="text-xs text-purple-700 mb-4">Adapt this lesson for specific interests or needs.</p>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-purple-800 mb-1">Theme / Interest</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="remix-topic" placeholder="e.g. Minecraft, Soccer, Nature" class="w-full rounded-md border-purple-200 border p-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                                <button type="button" id="remix-btn" class="bg-purple-600 text-white px-3 py-2 rounded-md font-medium text-sm hover:bg-purple-700 transition flex items-center gap-1 min-w-[80px] justify-center">
+                                    Remix
+                                </button>
+                            </div>
+                            
+                            <!-- Accessibility Toggle -->
+                            <div class="flex items-start gap-2 mt-3 p-2 bg-purple-100/50 rounded border border-purple-200">
+                                <input type="checkbox" id="accessibility-check" class="mt-1 w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500">
+                                <label for="accessibility-check" class="text-xs text-purple-800 leading-tight">
+                                    <span class="font-bold">Adapt for Inclusive Learning (SpEd/UDL)</span><br>
+                                    <span class="opacity-80">Add sensory supports & cognitive scaffolding.</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN: Output -->
+            <div class="lg:col-span-8">
+                <!-- Action Bar -->
+                <div class="action-bar flex flex-col sm:flex-row justify-between items-center mb-4 gap-3">
+                    <h2 class="text-lg font-semibold text-gray-900">Lesson Preview</h2>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button id="regenerate-btn" class="flex-1 sm:flex-none flex items-center justify-center gap-1 bg-white border border-gray-300 text-purple-700 font-medium px-3 py-2 rounded text-sm hover:bg-purple-50 transition shadow-sm hidden">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i> Regenerate
+                        </button>
+                        <button id="parent-email-btn" class="hidden sm:flex-none flex items-center justify-center gap-1 bg-white border border-purple-300 text-purple-700 px-3 py-2 rounded text-sm hover:bg-purple-50 transition shadow-sm">
+                            <i data-lucide="mail" class="w-4 h-4"></i> Parent Email
+                        </button>
+                        <button id="doc-btn" class="flex-1 sm:flex-none flex items-center justify-center gap-1 bg-white border border-blue-300 text-blue-700 px-3 py-2 rounded text-sm hover:bg-blue-50 transition shadow-sm">
+  <i data-lucide="file-down" class="w-4 h-4"></i> Doc
+</button>
+
+<button id="pdf-btn" class="flex-1 sm:flex-none flex items-center justify-center gap-1 bg-ucla-dark text-white px-3 py-2 rounded text-sm hover:bg-gray-800 transition shadow-sm">
+  <i data-lucide="printer" class="w-4 h-4"></i> Print/PDF
+</button>
+
+                    </div>
+                </div>
+
+                <!-- The Document -->
+                <div id="lesson-output" class="bg-white rounded-xl shadow-lg border border-gray-200 min-h-[800px] p-8 md:p-12 relative">
+                    
+                    <!-- Empty State -->
+                    <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
+                        <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                            <i data-lucide="book-open" class="w-10 h-10 text-ucla-blue opacity-50"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900">Curriculum Builder</h3>
+                        <p class="text-gray-500 max-w-md mt-2 text-sm">Select a Pillar, Grade Band, and Topic to generate a research-based, developmentally appropriate lesson plan.</p>
+                    </div>
+
+                    <!-- Live Content -->
+                    <div id="plan-content" class="hidden">
+                        
+                        <!-- Header Section -->
+                        <div class="border-b-4 border-ucla-gold pb-6 mb-8">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Digital Futures Curriculum • <span id="plan-pillar">Pillar 1</span></div>
+                                    <h1 id="plan-title" class="text-3xl md:text-4xl font-bold text-ucla-dark doc-font mb-2">Topic Title</h1>
+                                    <div class="flex flex-wrap items-center gap-3 text-sm font-medium text-gray-700">
+                                        <span class="bg-gray-100 px-2 py-1 rounded">Grade Band: <span id="plan-grade">3-5</span></span>
+                                        <span class="bg-gray-100 px-2 py-1 rounded">Time: <span id="plan-duration">20</span> mins</span>
+                                        <span class="bg-gray-100 px-2 py-1 rounded">Module: <span id="plan-module">Upper Elementary</span></span>
+                                    </div>
+                                </div>
+                                <!-- Logo placeholder for print -->
+                                <div class="hidden text-right" id="print-logo">
+                                    <div class="text-lg font-bold text-ucla-blue">Digital Futures</div>
+                                    <div class="text-xs text-gray-400">UCLA CTS • CDPH Office of School Health</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Objectives & Evidence Grid -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                            <!-- Objective -->
+                            <div class="bg-blue-50 p-6 rounded-lg border border-blue-100 break-inside-avoid">
+                                <h3 class="text-sm font-bold text-ucla-blue uppercase tracking-wide mb-2 flex items-center gap-2">
+                                    <i data-lucide="target" class="w-4 h-4"></i> Learning Objective
+                                </h3>
+                                <p id="plan-objective" class="text-gray-800 leading-relaxed doc-font">Students will be able to...</p>
+                            </div>
+
+                            <!-- Evidence Base (NotebookLM Integration) -->
+                            <div class="bg-purple-50 p-6 rounded-lg border border-purple-100 break-inside-avoid">
+                                <h3 class="text-sm font-bold text-purple-700 uppercase tracking-wide mb-2 flex items-center gap-2">
+                                    <i data-lucide="book-open-check" class="w-4 h-4"></i> Research Rationale
+                                </h3>
+                                <p id="plan-evidence" class="text-sm text-gray-800 leading-relaxed italic">
+                                    <!-- Populated by JS -->
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Materials & Standards -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                             <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 break-inside-avoid">
+                                <h3 class="text-sm font-bold text-gray-600 uppercase tracking-wide mb-2 flex items-center gap-2">
+                                    <i data-lucide="package" class="w-4 h-4"></i> Materials Checklist
+                                </h3>
+                                <ul id="plan-materials" class="text-sm text-gray-800 space-y-2 mb-4">
+                                    <!-- Populated by JS -->
+                                </ul>
+                                <div class="mt-4 pt-4 border-t border-gray-200">
+                                    <h4 class="text-xs font-bold text-gray-500 uppercase mb-1">Home Alternatives (No-Prep):</h4>
+                                    <p id="plan-alternatives" class="text-sm text-gray-600 italic">If you don't have these, use...</p>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4 border border-gray-200 rounded-lg bg-white break-inside-avoid">
+                                <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide mb-2 flex items-center gap-2">
+                                    <i data-lucide="book-check" class="w-4 h-4 text-ucla-gold"></i> CA Standards & Developmental Focus
+                                </h3>
+                                <div id="plan-standards" class="font-mono leading-relaxed">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Lesson Flow -->
+                        <div class="space-y-8">
+                            
+                            <!-- 1. Hook -->
+                            <div class="relative pl-8 border-l-2 border-ucla-gold break-inside-avoid">
+                                <div class="absolute -left-3 top-0 w-6 h-6 rounded-full bg-ucla-gold text-ucla-dark font-bold flex items-center justify-center text-xs">1</div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <h3 class="text-lg font-bold text-gray-900">Spark Engagement (The Hook) <span class="text-sm font-normal text-gray-500">~5 mins</span></h3>
+                                    <span id="ai-badge-hook" class="hidden bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full border border-purple-200 font-bold uppercase tracking-wider">Remixed</span>
+                                </div>
+                                <p id="plan-hook-desc" class="text-gray-700 mb-4 doc-font">Description...</p>
+                                
+                                <div class="bg-white border-l-4 border-ucla-blue p-4 shadow-sm">
+                                    <p class="text-xs font-bold text-ucla-blue uppercase mb-1">Facilitator Script (Say This):</p>
+                                    <p id="plan-hook-script" class="text-gray-800 italic font-medium doc-font text-lg">"..."</p>
+                                </div>
+                            </div>
+
+                            <!-- 2. Core Activity -->
+                            <div class="relative pl-8 border-l-2 border-ucla-gold break-inside-avoid">
+                                <div class="absolute -left-3 top-0 w-6 h-6 rounded-full bg-ucla-gold text-ucla-dark font-bold flex items-center justify-center text-xs">2</div>
+                                <h3 class="text-lg font-bold text-gray-900 mb-2">Core Activity</h3>
+                                <div id="plan-activity-steps" class="space-y-4 text-gray-800 doc-font leading-relaxed text-sm">
+                                    <!-- Steps -->
+                                </div>
+                            </div>
+
+                            <!-- 3. Discussion -->
+                            <div class="relative pl-8 border-l-2 border-gray-300 break-inside-avoid">
+                                <div class="absolute -left-3 top-0 w-6 h-6 rounded-full bg-gray-200 text-gray-600 font-bold flex items-center justify-center text-xs">3</div>
+                                <h3 class="text-lg font-bold text-gray-900 mb-2">Reflect & Connect</h3>
+                                <ul id="plan-discussion" class="list-disc list-outside ml-4 space-y-2 text-gray-800 doc-font text-sm">
+                                    <li>Question 1</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Footer Tips -->
+                        <div class="mt-12 pt-6 border-t border-gray-200 break-inside-avoid">
+                            <div class="bg-yellow-50 rounded-xl p-5 border border-yellow-100">
+                                <h4 class="text-xs font-bold text-ucla-dark mb-2 flex items-center gap-2 uppercase tracking-wide">
+                                    <i data-lucide="lightbulb" class="w-4 h-4 text-ucla-gold"></i> Facilitator Guide: Developmental Notes
+                                </h4>
+                                <div id="plan-tips" class="text-sm text-gray-700 leading-relaxed doc-font">
+                                    Developmental note...
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- AI Parent Note Section -->
+                        <div id="parent-note-section" class="hidden mt-8 pt-6 border-t-2 border-dashed border-gray-300 break-inside-avoid">
+                            <h3 class="text-lg font-bold text-purple-900 mb-4 flex items-center gap-2">
+                                <i data-lucide="mail" class="w-5 h-5"></i> Parent Communication Draft
+                            </h3>
+                            <div class="bg-purple-50 p-6 rounded-lg border border-purple-100">
+                                <p class="text-xs font-bold text-purple-700 uppercase mb-2">Subject: Digital Futures Update</p>
+                                <div id="parent-note-content" class="text-gray-800 text-sm whitespace-pre-line doc-font leading-relaxed">
+                                    <!-- Content -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Citation Footer -->
+                        <div class="mt-8 text-[10px] text-gray-400 text-center border-t border-gray-100 pt-4">
+                            Generated by the Digital Futures Lesson Plan Generator | UCLA Center for the Transformation of Schools | CDPH Office of School Health
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- INITIALIZATION ---
+        if (typeof lucide !== 'undefined') { lucide.createIcons(); }
+
+        // --- GEMINI API CONFIGURATION ---
+        const apiKey = ""; 
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+        // --- EVIDENCE DATABASE (Synthesized from User's NotebookLM Resources: Haidt, CDPH, CHT) ---
+        const evidenceBase = {
+            "p1": "Based on 'The Effects of Phone-Free Schools' (Haidt & Rausch, 2023) and '2025 ExcelinEd Advocacy', reducing smartphone access during school hours (CA AB 3216) correlates with a 6.4% increase in test scores for 16-year-olds and a significant reduction in bullying. A 2025 CDC study notes that high non-schoolwork screen time (>4hrs/day) is linked to irregular sleep and anxiety. This pillar emphasizes 'Away for the Day' policies to restore attention and social connection.",
+            "p2": "Grounded in the 'Social Media and Mental Health Collaborative Review' (Haidt et al., 2025) and 'Handbook of Children and Screens' (2025). Evidence indicates a dose-response relationship between heavy social media use and increases in depression/anxiety, particularly for girls. This pillar shifts focus from 'individual resilience' to recognizing systemic 'proximal harms' like algorithmic social comparison and the quantified self.",
+            "p3": "Drawing from the 'Handbook of Children and Screens' (2025) and 'Teens, Social Media and Technology' (Pew, 2024), this pillar addresses the 'displacement hypothesis': screen time displacing face-to-face interaction. Haidt's review notes that 5 days of screen-free camp significantly improved preteens' ability to read non-verbal emotional cues. Focus is on 'embodied' social skills vs. digital connection.",
+            "p4": "Aligned with the Center for Humane Technology's 'Youth Toolkit' and 'Algorithms & the Attention Economy' (UNH). Students learn about 'Persuasive Technology'—how features like infinite scroll, variable rewards, and auto-play are designed to bypass executive function. This pillar builds 'Algorithmic Awareness' to restore agency against the 'Attention Economy'.",
+            "p5": "Based on 'Global Democratic Digital Citizenship' (Hughes et al., 2024) and 'Building AI Literacy' (SchoolAI). Moves beyond safety ('don't do this') to active citizenship. Empowering students to use tools for civic good, understanding AI bias, and participating in the 'Wait Until 8th' pledge or similar community norms as active stakeholders, not just passive users."
+        };
+
+        // --- CA STANDARDS & DEVELOPMENTAL GOALS BY BAND ---
+        const gradeBandStandards = {
+            "tk-2": {
+                title: "Early Elementary (TK-2)",
+                standard: "CA Health Ed Standard 1.1.M: Identify emotions and safe practices.",
+                focus: "Concrete thinking (Piaget). Focus on 'asking permission', distinguishing 'real vs. screen', and recognizing how devices make our bodies feel. Use puppetry, movement, and tangible analogies."
+            },
+            "3-5": {
+                title: "Upper Elementary (3-5)",
+                standard: "CA.CCSS.ELA-Literacy.SL.4.1: Engage effectively in collaborative discussions.",
+                focus: "Rule-making and Fairness. Introduction to the 'Attention Economy' via simple concepts (e.g., 'The slot machine in your pocket'). Focus on privacy boundaries and the difference between 'creators' and 'consumers'."
+            },
+            "6-8": {
+                title: "Middle School (6-8)",
+                standard: "CA.CCSS.ELA-Literacy.SL.8.1: Acknowledge new information and justify views.",
+                focus: "Identity Formation & Social Belonging. Critical period for social comparison (Haidt). Address 'FOMO', cyberbullying, and the 'imaginary audience'. Focus on 'Wait Until 8th' concepts and managing peer pressure without phones."
+            },
+            "9-12": {
+                title: "High School (9-12)",
+                standard: "CA.CCSS.ELA-Literacy.SL.11-12.1: Initiate and participate effectively in a range of collaborative discussions.",
+                focus: "Autonomy & Systemic Analysis. Executive function development. Analyzing 'Persuasive Design' (CHT), algorithmic bias, and preparing for professional digital footprints. Debate CA AB 3216 and KOSA legislation implications."
+            }
+        };
+
+        // --- DATA STRUCTURE ---
+        const pillarInfo = {
+            "p1": { name: "Protection & Habits", desc: "Sleep, boundaries, and physical health." },
+            "p2": { name: "Self & Feelings", desc: "Identity, emotions, and self-esteem." },
+            "p3": { name: "Relationships", desc: "Empathy, cyberbullying, and conflict." },
+            "p4": { name: "Systems", desc: "Algorithms, ads, and the attention economy." },
+            "p5": { name: "Agency & Action", desc: "Digital citizenship and leadership." }
+        };
+
+        // Default Static Topics
+        const topicsDatabase = {
+            "p1": [
+                { id: "sleep", title: "Sleep & Screen Balance", minBandLevel: 0 },
+                { id: "privacy", title: "My Private Data Bubble", minBandLevel: 0 },
+                { id: "boundaries", title: "Setting Tech Boundaries", minBandLevel: 1 },
+                { id: "safety", title: "Safe Searching", minBandLevel: 0 }
+            ],
+            "p2": [
+                { id: "emotions", title: "Red Flag Feelings", minBandLevel: 0 },
+                { id: "identity", title: "My Digital Avatar", minBandLevel: 1 },
+                { id: "fomo", title: "FOMO & Comparison", minBandLevel: 2 },
+                { id: "validation", title: "Likes & Self-Worth", minBandLevel: 2 }
+            ],
+            "p3": [
+                { id: "kindness", title: "Digital Kindness", minBandLevel: 0 },
+                { id: "conflict", title: "Resolving Online Arguments", minBandLevel: 2 },
+                { id: "upstander", title: "Be an Upstander", minBandLevel: 1 }
+            ],
+            "p4": [
+                { id: "ads", title: "Spotting the Ad", minBandLevel: 0 },
+                { id: "algo", title: "The Algorithm & Me", minBandLevel: 2 },
+                { id: "design", title: "Persuasive Design Tricks", minBandLevel: 1 }
+            ],
+            "p5": [
+                { id: "citizen", title: "Being a Digital Leader", minBandLevel: 1 },
+                { id: "create", title: "Creating vs. Consuming", minBandLevel: 0 },
+                { id: "activism", title: "Digital Activism", minBandLevel: 3 }
+            ]
+        };
+
+        // Helper to convert band value to numeric level for filtering
+        function getBandLevel(bandValue) {
+            if (bandValue === 'tk-2') return 0;
+            if (bandValue === '3-5') return 1;
+            if (bandValue === '6-8') return 2;
+            if (bandValue === '9-12') return 3;
+            return 0;
+        }
+
+        // --- API HANDLERS ---
+        async function callGemini(prompt, useSearch = false) {
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }]
+            };
+            
+            // Add Google Search grounding if requested
+            if (useSearch) {
+                payload.tools = [{ google_search: {} }];
+            }
+
+            const delays = [1000, 2000, 4000];
+            for (let i = 0; i <= delays.length; i++) {
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) { if (i < delays.length) { await new Promise(r => setTimeout(r, delays[i])); continue; } throw new Error(response.statusText); }
+                    const data = await response.json();
+                    return data.candidates[0].content.parts[0].text;
+                } catch (error) { if (i === delays.length) throw error; }
+            }
+        }
+
+        // --- Robust JSON Parser ---
+        function parseGeminiResponse(text) {
+          const markdownRegex = /```json\s*([\s\S]*?)\s*```/i;
+          const match = text.match(markdownRegex);
+          let jsonString = match ? match[1].trim() : text.trim();
+
+          // If no code fence, fall back to first {...} block
+          if (!match) {
+            const startObj = jsonString.indexOf('{');
+            const endObj = jsonString.lastIndexOf('}');
+            const startArr = jsonString.indexOf('[');
+            const endArr = jsonString.lastIndexOf(']');
+
+            // Prefer a top-level object if it exists
+            if (startObj !== -1 && endObj !== -1 && startObj < endObj) {
+              jsonString = jsonString.substring(startObj, endObj + 1);
+            } else if (startArr !== -1 && endArr !== -1 && startArr < endArr) {
+              jsonString = jsonString.substring(startArr, endArr + 1);
+            }
+          }
+
+          // IMPORTANT: only slice arrays if the JSON itself is an array at the top level
+          const trimmed = jsonString.trim();
+          if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+            // ok as-is
+          } else if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+            // ok as-is
+          }
+
+          try {
+            return JSON.parse(jsonString);
+          } catch (e) {
+            console.error("JSON Error. Raw text:", text);
+            return { error: true, raw: text };
+          }
+        }
+
+
+        // --- FORMATTERS ---
+        function formatText(text) {
+            if (typeof text !== 'string') return "";
+            let formatted = text.replace(/^\s*[-*]\s+/gm, "• "); 
+            formatted = formatted.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>"); 
+            formatted = formatted.replace(/\n/g, "<br>");
+            return formatted;
+        }
+
+        function formatStep(stepText) {
+            if(!stepText) return "";
+            let formatted = String(stepText);
+            
+            if (!formatted.includes("script-do") && !formatted.includes("script-say")) {
+                formatted = formatted.replace(/DO:/i, "<span class='script-do'>DO:</span>");
+                formatted = formatted.replace(/SAY:/i, "<br><span class='script-say'>SAY:</span>");
+                formatted = formatted.replace(/(Step \d+:?)/i, "<strong>$1</strong>");
+            }
+            return formatted;
+        }
+
+        // --- MAIN LOGIC ---
+        const els = {
+            pillar: document.getElementById('pillar-select'),
+            grade: document.getElementById('grade-select'),
+            topic: document.getElementById('topic-select'),
+            topicHelper: document.getElementById('topic-helper'),
+            discoverBtn: document.getElementById('discover-topics-btn'),
+            durationInput: document.getElementById('duration-input'),
+            durationBtns: document.querySelectorAll('.duration-btn'),
+            generateBtn: document.getElementById('generate-btn'),
+            regenerateBtn: document.getElementById('regenerate-btn'),
+            remixBtn: document.getElementById('remix-btn'),
+            parentBtn: document.getElementById('parent-email-btn'),
+            sourceBtn: document.getElementById('toggle-source-btn'),
+            sourceContainer: document.getElementById('source-context-container'),
+            sourceText: document.getElementById('source-context-text'),
+            pillarDesc: document.getElementById('pillar-desc')
+        };
+
+        function updateTopics(useStatic = true) {
+            if (!useStatic) return; // Don't overwrite if we just loaded AI topics
+
+            const pVal = els.pillar.value;
+            const bandVal = els.grade.value;
+            const bandLevel = getBandLevel(bandVal);
+
+            els.sourceText.value = evidenceBase[pVal]; 
+            
+            const allTopics = topicsDatabase[pVal] || [];
+            const suitableTopics = allTopics.filter(t => t.minBandLevel <= bandLevel);
+            
+            renderTopicOptions(suitableTopics);
+            els.pillarDesc.innerText = pillarInfo[pVal].desc;
+            els.topicHelper.innerText = "Standard topics loaded. Click 'Find Timely Topics' for AI suggestions.";
+        }
+
+        function renderTopicOptions(topics) {
+            els.topic.innerHTML = '';
+            topics.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.title; // Use title as value for AI prompt consistency
+                opt.innerText = t.title;
+                els.topic.appendChild(opt);
+            });
+        }
+
+        async function discoverTrendingTopics() {
+            const btn = els.discoverBtn;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<span class="loader mr-2"></span> Researching Trends...`;
+            btn.disabled = true;
+            els.topic.disabled = true;
+
+            const pVal = els.pillar.value;
+            const bandVal = els.grade.value;
+            const bandData = gradeBandStandards[bandVal];
+            
+            const prompt = `
+                Role: Expert Curriculum Designer.
+                Task: Search for and identify 5 compelling, timely, and developmentally appropriate digital wellness topics for students in Grade Band: "${bandData.title}" related to Pillar: "${pillarInfo[pVal].name}" (${pillarInfo[pVal].desc}).
+                
+                Context: Use Google Search to find current trends (2024-2025) in youth technology use, social media challenges, or digital habits relevant to this specific age group.
+                
+                Constraints:
+                1. Topics must be developmentally appropriate (e.g., TK-2: basic safety/feelings; 9-12: ethics/algorithms/career).
+                2. Topics must be "relatable" and "timely" (addressing what kids are actually facing right now).
+                
+                Output JSON Array ONLY:
+                [
+                    { "title": "Topic Title 1" },
+                    { "title": "Topic Title 2" },
+                    ...
+                ]
+            `;
+
+            try {
+                const response = await callGemini(prompt, true); // Enable Search
+                const newTopics = parseGeminiResponse(response);
+                
+                if (Array.isArray(newTopics)) {
+                    renderTopicOptions(newTopics);
+                    els.topicHelper.innerHTML = `<span class="text-green-600 font-bold">✨ AI found ${newTopics.length} timely topics based on current trends.</span>`;
+                    // Auto-select first new topic
+                    els.topic.selectedIndex = 0;
+                } else {
+                    throw new Error("Invalid format");
+                }
+
+            } catch (e) {
+                console.error(e);
+                alert("Could not fetch new trends. Reverting to standard list.");
+                updateTopics(true);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                els.topic.disabled = false;
+            }
+        }
+
+        async function generateLesson() {
+            const btn = els.generateBtn;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<span class="loader mr-2"></span> Generating...`;
+            btn.disabled = true;
+
+            const pVal = els.pillar.value;
+            const bandVal = els.grade.value;
+            const dVal = els.durationInput.value;
+            const evidence = els.sourceText.value;
+            const topicName = els.topic.value; // Now uses the text value directly
+            
+            const bandData = gradeBandStandards[bandVal];
+            
+            const prompt = `
+                Role: Expert K-12 Digital Futures Curriculum Designer.
+                Task: Create a scripted lesson plan for Grade Band: "${bandData.title}".
+                Topic: "${topicName}"
+                Pillar: "${pillarInfo[pVal].name}"
+                Duration: ${dVal} min
+                Evidence Base: "${evidence}"
+                Core Standard (ANCHOR): "${bandData.standard}"
+                Developmental Focus: "${bandData.focus}"
+
+                CRITICAL INSTRUCTION: Ensure the language, activity complexity, and discussion depth are APPROPRIATE for ${bandData.title}.
+                - For TK-2: Use simple language, movement, concrete examples, puppetry/storytelling concepts.
+                - For 3-5: Use relatable scenarios, rule-making, introductory ethics.
+                - For 6-8: Focus on social dynamics, peer pressure, identity, and "the why". Use concepts from Haidt (e.g. social comparison, FOMO).
+                - For 9-12: Focus on autonomy, future consequences, systemic analysis, and leadership.
+
+                Output JSON ONLY:
+                {
+                    "objective": "string",
+                    "materials": ["string", "string"],
+                    "alternatives": "string",
+                    "hook_desc": "string",
+                    "hook_script": "string",
+                    "activity_steps": ["Step 1 text...", "Step 2 text..."],
+                    "discussion": ["Q1", "Q2"],
+                    "tips": "string (Facilitator note on WHY this is developmentally appropriate for this age band)",
+                    "aligned_competencies": ["Competency 1", "Competency 2"] 
+                }
+            `;
+
+            try {
+                const response = await callGemini(prompt, false); // No search needed for generation, just topic finding
+                const content = parseGeminiResponse(response);
+                if (content.error) throw new Error("Parse Failed");
+
+                // Render
+                document.getElementById('plan-pillar').innerText = pillarInfo[pVal].name;
+                document.getElementById('plan-title').innerText = topicName;
+                document.getElementById('plan-grade').innerText = bandData.title;
+                document.getElementById('plan-duration').innerText = dVal;
+                document.getElementById('plan-module').innerText = bandData.title;
+                
+                document.getElementById('plan-objective').innerText = content.objective;
+                document.getElementById('plan-evidence').innerText = evidence;
+                
+                // Standards Rendering
+                const stdContainer = document.getElementById('plan-standards');
+                stdContainer.innerHTML = '';
+
+                // 1. The Fixed Core Standard
+                const coreEl = document.createElement('div');
+                coreEl.className = "mb-3 pb-3 border-b border-gray-100";
+                coreEl.innerHTML = `
+                    <div class="text-[10px] uppercase tracking-wider font-bold text-ucla-blue mb-1">Primary Standard</div>
+                    <div class="text-sm font-semibold text-gray-900">${bandData.standard}</div>
+                    <div class="text-xs text-gray-500 mt-1 italic">Focus: ${bandData.focus}</div>
+                `;
+                stdContainer.appendChild(coreEl);
+
+                // 2. The AI Aligned Competencies
+                if (content.aligned_competencies && content.aligned_competencies.length > 0) {
+                     const compEl = document.createElement('div');
+                     compEl.innerHTML = `<div class="text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-1">Aligned Competencies</div>`;
+                     const ul = document.createElement('ul');
+                     ul.className = "space-y-1 list-disc list-inside text-xs text-gray-600";
+                     content.aligned_competencies.forEach(c => {
+                         const li = document.createElement('li');
+                         li.innerText = c;
+                         ul.appendChild(li);
+                     });
+                     compEl.appendChild(ul);
+                     stdContainer.appendChild(compEl);
+                }
+
+                // Lists
+                const matList = document.getElementById('plan-materials');
+                matList.innerHTML = '';
+                content.materials.forEach(m => {
+                    const li = document.createElement('li');
+                    li.className = "flex items-start gap-2";
+                    li.innerHTML = `<span class="mt-1.5 w-1.5 h-1.5 bg-ucla-blue rounded-full flex-shrink-0"></span><span>${m}</span>`;
+                    matList.appendChild(li);
+                });
+                document.getElementById('plan-alternatives').innerText = content.alternatives;
+
+                // Hook
+                document.getElementById('plan-hook-desc').innerText = content.hook_desc;
+                document.getElementById('plan-hook-script').innerText = `"${content.hook_script}"`;
+
+                // Activity (Robust)
+                const actList = document.getElementById('plan-activity-steps');
+                actList.innerHTML = '';
+                let steps = Array.isArray(content.activity_steps) ? content.activity_steps : [content.activity_steps];
+                steps.forEach(s => {
+                    const p = document.createElement('p');
+                    p.className = "mb-4 p-3 bg-gray-50 rounded border border-gray-100 text-sm leading-relaxed";
+                    p.innerHTML = formatStep(s);
+                    actList.appendChild(p);
+                });
+
+                // Discussion
+                const discList = document.getElementById('plan-discussion');
+                discList.innerHTML = '';
+                if(content.discussion) {
+                    content.discussion.forEach(q => {
+                        const li = document.createElement('li');
+                        li.innerText = q;
+                        discList.appendChild(li);
+                    });
+                }
+
+                document.getElementById('plan-tips').innerHTML = formatText(content.tips);
+
+                // UI
+                document.getElementById('empty-state').classList.add('hidden');
+                document.getElementById('plan-content').classList.remove('hidden');
+                document.getElementById('ai-tools-container').classList.remove('hidden');
+                document.getElementById('parent-email-btn').classList.remove('hidden');
+                document.getElementById('parent-email-btn').classList.add('flex');
+                document.getElementById('regenerate-btn').classList.remove('hidden');
+                document.getElementById('regenerate-btn').classList.add('flex');
+
+                if(window.innerWidth < 1024) document.getElementById('lesson-output').scrollIntoView({behavior: 'smooth'});
+
+            } catch (e) {
+                console.error(e);
+                alert("Generation failed. Please try again.");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function remixLesson() {
+            const theme = document.getElementById('remix-topic').value || "General Interest";
+            const isAccessible = document.getElementById('accessibility-check').checked;
+            const btn = document.getElementById('remix-btn');
+            const originalText = btn.innerText;
+            btn.innerText = "Remixing...";
+            btn.disabled = true;
+
+            const currentTitle = document.getElementById('plan-title').innerText;
+            const currentGrade = document.getElementById('plan-grade').innerText;
+            const evidence = document.getElementById('source-context-text').value;
+
+            let prompt = `
+                Context: K-12 Digital Futures Curriculum Designer.
+                Task: Remix lesson "${currentTitle}" for Grade Band ${currentGrade}.
+                Theme: ${theme}. Inclusive/UDL: ${isAccessible}.
+                Evidence: "${evidence}"
+                
+                Requirements:
+                1. Hook: Use theme.
+                2. Core Activity: 3 steps. Plain text (DO: / SAY:).
+                3. Facilitator Guide: ${isAccessible ? "EXPLICITLY explain specific UDL/Accessibility strategies used." : "Standard developmental tips."}
+                
+                JSON ONLY: { "hook_desc": "", "hook_script": "", "activity_steps": ["..."], "tips": "" }
+            `;
+
+            try {
+                const response = await callGemini(prompt);
+                const data = parseGeminiResponse(response);
+                if (data.error) throw new Error("Parse Failed");
+
+                document.getElementById('plan-hook-desc').innerText = data.hook_desc;
+                document.getElementById('plan-hook-script').innerText = `"${data.hook_script}"`;
+                
+                const actList = document.getElementById('plan-activity-steps');
+                actList.innerHTML = '';
+                
+                let rawSteps = data.activity_steps || data.steps || data.activity || data.core_activity;
+                let steps = [];
+
+                if (Array.isArray(rawSteps)) {
+                    steps = rawSteps;
+                } else if (typeof rawSteps === 'string') {
+                    steps = rawSteps.split(/\n(?=Step)/).filter(s => s.trim().length > 0);
+                    if (steps.length === 0) steps = [rawSteps];
+                } else {
+                    steps = ["Activity content could not be generated. Please try again."];
+                }
+
+                steps.forEach(s => {
+                    const p = document.createElement('p');
+                    p.className = "mb-4 p-3 bg-purple-50 rounded border border-purple-100 text-sm leading-relaxed";
+                    p.innerHTML = formatStep(s);
+                    actList.appendChild(p);
+                });
+
+                let tipsContent = formatText(data.tips);
+                if (isAccessible) tipsContent = `<strong class="text-purple-700 block mb-2">♿ UDL & Accessibility Strategy:</strong>` + tipsContent;
+                document.getElementById('plan-tips').innerHTML = tipsContent;
+                document.getElementById('ai-badge-hook').classList.remove('hidden');
+
+            } catch (e) { console.error(e); alert("Remix failed."); } 
+            finally { btn.innerText = originalText; btn.disabled = false; }
+        }
+        
+        async function draftParentEmail() {
+             const btn = document.getElementById('parent-email-btn');
+             const originalText = btn.innerHTML;
+             btn.innerHTML = `<span class="loader"></span> Generating...`;
+             const currentTitle = document.getElementById('plan-title').innerText;
+             const currentGrade = document.getElementById('plan-grade').innerText;
+             const prompt = `Write a short parent email about the Digital Futures lesson: ${currentTitle} for students in ${currentGrade}. Include a dinner table question. Plain text.`;
+             try {
+                 const response = await callGemini(prompt);
+                 document.getElementById('parent-note-content').innerText = response;
+                 document.getElementById('parent-note-section').classList.remove('hidden');
+                 document.getElementById('parent-note-section').scrollIntoView({ behavior: 'smooth' });
+             } catch (e) { alert("Failed."); } finally { btn.innerHTML = originalText; }
+        }
+
+        // Setup
+        els.sourceBtn.addEventListener('click', () => els.sourceContainer.classList.toggle('hidden'));
+        els.durationBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                els.durationBtns.forEach(b => { b.classList.remove('bg-ucla-blue', 'text-white'); b.classList.add('bg-white', 'text-gray-600'); });
+                btn.classList.remove('bg-white', 'text-gray-600'); btn.classList.add('bg-ucla-blue', 'text-white');
+                els.durationInput.value = btn.dataset.value;
+            });
+        });
+        
+        els.pillar.addEventListener('change', () => updateTopics(true));
+        els.grade.addEventListener('change', () => updateTopics(true)); // Grade band now filters topics
+        
+        // New Discover Button
+        els.discoverBtn.addEventListener('click', discoverTrendingTopics);
+
+        els.generateBtn.addEventListener('click', generateLesson);
+        els.regenerateBtn.addEventListener('click', generateLesson);
+        els.remixBtn.addEventListener('click', remixLesson);
+        els.parentBtn.addEventListener('click', draftParentEmail);
+
+        updateTopics(true); // Init
+
+        // Print & Download Helpers
+        async function printLesson() {
+  const el = document.getElementById('lesson-output');
+
+  // Ensure it's visible (avoid printing empty state)
+  if (document.getElementById('plan-content').classList.contains('hidden')) {
+    alert("Generate a lesson first.");
+    return;
+  }
+
+  // Force any pending font loads
+  if (document.fonts && document.fonts.ready) {
+    try { await document.fonts.ready; } catch(e) {}
+  }
+
+  const canvas = await html2canvas(el, {
+    scale: 2,              // higher = sharper
+    useCORS: true,         // try to include external assets
+    backgroundColor: '#ffffff',
+    windowWidth: document.documentElement.clientWidth
+  });
+
+  const imgData = canvas.toDataURL('image/png');
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p', 'pt', 'letter'); // or 'a4'
+
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+
+  // Fit image to page width, preserve aspect ratio
+  const imgWidth = pageWidth;
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+  let y = 0;
+  let remaining = imgHeight;
+
+  // Add multiple pages if needed
+  while (remaining > 0) {
+    pdf.addImage(imgData, 'PNG', 0, y, imgWidth, imgHeight);
+    remaining -= pageHeight;
+    if (remaining > 0) {
+      pdf.addPage();
+      y -= pageHeight;
+    }
+  }
+
+  pdf.save('digital_futures_lesson.pdf');
+}
+    </script>
+</body>
+</html>
