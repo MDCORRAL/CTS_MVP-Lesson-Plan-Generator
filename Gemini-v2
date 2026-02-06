@@ -973,54 +973,88 @@
         updateTopics(true); // Init
 
         // Print & Download Helpers
+        async function buildLessonCanvas() {
+            const el = document.getElementById('lesson-output');
+
+            if (document.getElementById('plan-content').classList.contains('hidden')) {
+                alert("Generate a lesson first.");
+                return null;
+            }
+
+            if (document.fonts && document.fonts.ready) {
+                try { await document.fonts.ready; } catch (e) {}
+            }
+
+            return html2canvas(el, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                windowWidth: document.documentElement.clientWidth
+            });
+        }
+
         async function printLesson() {
-  const el = document.getElementById('lesson-output');
+            const canvas = await buildLessonCanvas();
+            if (!canvas) return;
 
-  // Ensure it's visible (avoid printing empty state)
-  if (document.getElementById('plan-content').classList.contains('hidden')) {
-    alert("Generate a lesson first.");
-    return;
-  }
+            const imgData = canvas.toDataURL('image/png');
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'pt', 'letter'); // or 'a4'
 
-  // Force any pending font loads
-  if (document.fonts && document.fonts.ready) {
-    try { await document.fonts.ready; } catch(e) {}
-  }
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
 
-  const canvas = await html2canvas(el, {
-    scale: 2,              // higher = sharper
-    useCORS: true,         // try to include external assets
-    backgroundColor: '#ffffff',
-    windowWidth: document.documentElement.clientWidth
-  });
+            const imgWidth = pageWidth;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-  const imgData = canvas.toDataURL('image/png');
+            let y = 0;
+            let remaining = imgHeight;
 
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF('p', 'pt', 'letter'); // or 'a4'
+            while (remaining > 0) {
+                pdf.addImage(imgData, 'PNG', 0, y, imgWidth, imgHeight);
+                remaining -= pageHeight;
+                if (remaining > 0) {
+                    pdf.addPage();
+                    y -= pageHeight;
+                }
+            }
 
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
+            pdf.save('digital_futures_lesson.pdf');
+        }
 
-  // Fit image to page width, preserve aspect ratio
-  const imgWidth = pageWidth;
-  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        async function downloadDoc() {
+            const canvas = await buildLessonCanvas();
+            if (!canvas) return;
 
-  let y = 0;
-  let remaining = imgHeight;
+            const imgData = canvas.toDataURL('image/png');
+            const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Digital Futures Lesson Plan</title>
+  <style>
+    body { margin: 0; padding: 0; }
+    img { width: 100%; height: auto; display: block; }
+  </style>
+</head>
+<body>
+  <img src="${imgData}" alt="Digital Futures Lesson Plan" />
+</body>
+</html>`;
 
-  // Add multiple pages if needed
-  while (remaining > 0) {
-    pdf.addImage(imgData, 'PNG', 0, y, imgWidth, imgHeight);
-    remaining -= pageHeight;
-    if (remaining > 0) {
-      pdf.addPage();
-      y -= pageHeight;
-    }
-  }
+            const blob = new Blob([html], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'digital_futures_lesson.doc';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+        }
 
-  pdf.save('digital_futures_lesson.pdf');
-}
+        document.getElementById('pdf-btn').addEventListener('click', printLesson);
+        document.getElementById('doc-btn').addEventListener('click', downloadDoc);
     </script>
 </body>
 </html>
