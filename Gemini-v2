@@ -743,7 +743,7 @@
                 Pillar: "${pillarInfo[pVal].name}"
                 Duration: ${dVal} min
                 Evidence Base: "${evidence}"
-                Core Standard (ANCHOR): "${bandData.standard}"
+                Core Standard (CA ELA CCSS ANCHOR): "${bandData.standard}"
                 Developmental Focus: "${bandData.focus}"
 
                 CRITICAL INSTRUCTION: Ensure the language, activity complexity, and discussion depth are APPROPRIATE for ${bandData.title}.
@@ -751,6 +751,8 @@
                 - For 3-5: Use relatable scenarios, rule-making, introductory ethics.
                 - For 6-8: Focus on social dynamics, peer pressure, identity, and "the why". Use concepts from Haidt (e.g. social comparison, FOMO).
                 - For 9-12: Focus on autonomy, future consequences, systemic analysis, and leadership.
+                - Standards PRIORITY: First align to the CA ELA Common Core standard above (use it as the primary anchor).
+                - Standards VALIDATION: Then identify 2-4 additional aligned standards from CA or national frameworks (e.g., CA Health Ed, ISTE, CASEL, AASL), ensuring they authentically match the lesson content and grade band. Keep them concise.
 
                 Output JSON ONLY:
                 {
@@ -762,7 +764,8 @@
                     "activity_steps": ["Step 1 text...", "Step 2 text..."],
                     "discussion": ["Q1", "Q2"],
                     "tips": "string (Facilitator note on WHY this is developmentally appropriate for this age band)",
-                    "aligned_competencies": ["Competency 1", "Competency 2"] 
+                    "aligned_competencies": ["Competency 1", "Competency 2"],
+                    "aligned_standards": ["Framework: Standard code - Short alignment note", "Framework: Standard code - Short alignment note"]
                 }
             `;
 
@@ -789,7 +792,7 @@
                 const coreEl = document.createElement('div');
                 coreEl.className = "mb-3 pb-3 border-b border-gray-100";
                 coreEl.innerHTML = `
-                    <div class="text-[10px] uppercase tracking-wider font-bold text-ucla-blue mb-1">Primary Standard</div>
+                    <div class="text-[10px] uppercase tracking-wider font-bold text-ucla-blue mb-1">Primary Standard (CA ELA CCSS)</div>
                     <div class="text-sm font-semibold text-gray-900">${bandData.standard}</div>
                     <div class="text-xs text-gray-500 mt-1 italic">Focus: ${bandData.focus}</div>
                 `;
@@ -808,6 +811,22 @@
                      });
                      compEl.appendChild(ul);
                      stdContainer.appendChild(compEl);
+                }
+
+                // 3. Additional CA/National Standards (AI Validated)
+                if (content.aligned_standards && content.aligned_standards.length > 0) {
+                     const standardsEl = document.createElement('div');
+                     standardsEl.className = "mt-3";
+                     standardsEl.innerHTML = `<div class="text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-1">Additional CA/National Alignments</div>`;
+                     const ul = document.createElement('ul');
+                     ul.className = "space-y-1 list-disc list-inside text-xs text-gray-600";
+                     content.aligned_standards.forEach(s => {
+                         const li = document.createElement('li');
+                         li.innerText = s;
+                         ul.appendChild(li);
+                     });
+                     standardsEl.appendChild(ul);
+                     stdContainer.appendChild(standardsEl);
                 }
 
                 // Lists
@@ -973,54 +992,97 @@
         updateTopics(true); // Init
 
         // Print & Download Helpers
+        async function buildLessonCanvas() {
+            const el = document.getElementById('lesson-output');
+
+            if (document.getElementById('plan-content').classList.contains('hidden')) {
+                alert("Generate a lesson first.");
+                return null;
+            }
+
+            if (document.fonts && document.fonts.ready) {
+                try { await document.fonts.ready; } catch (e) {}
+            }
+
+            return html2canvas(el, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                windowWidth: document.documentElement.clientWidth
+            });
+        }
+
         async function printLesson() {
-  const el = document.getElementById('lesson-output');
+            const canvas = await buildLessonCanvas();
+            if (!canvas) return;
 
-  // Ensure it's visible (avoid printing empty state)
-  if (document.getElementById('plan-content').classList.contains('hidden')) {
-    alert("Generate a lesson first.");
-    return;
-  }
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'pt', 'letter'); // or 'a4'
 
-  // Force any pending font loads
-  if (document.fonts && document.fonts.ready) {
-    try { await document.fonts.ready; } catch(e) {}
-  }
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 36; // 0.5in margins
+            const contentWidth = pageWidth - margin * 2;
+            const contentHeight = pageHeight - margin * 2;
 
-  const canvas = await html2canvas(el, {
-    scale: 2,              // higher = sharper
-    useCORS: true,         // try to include external assets
-    backgroundColor: '#ffffff',
-    windowWidth: document.documentElement.clientWidth
-  });
+            const scale = contentWidth / canvas.width;
+            const pageCanvasHeight = Math.floor(contentHeight / scale);
 
-  const imgData = canvas.toDataURL('image/png');
+            let sourceY = 0;
+            while (sourceY < canvas.height) {
+                const sliceHeight = Math.min(pageCanvasHeight, canvas.height - sourceY);
+                const pageCanvas = document.createElement('canvas');
+                pageCanvas.width = canvas.width;
+                pageCanvas.height = sliceHeight;
+                const ctx = pageCanvas.getContext('2d');
+                ctx.drawImage(canvas, 0, sourceY, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
 
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF('p', 'pt', 'letter'); // or 'a4'
+                const imgData = pageCanvas.toDataURL('image/png');
+                const imgHeight = sliceHeight * scale;
+                pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, imgHeight);
 
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
+                sourceY += sliceHeight;
+                if (sourceY < canvas.height) {
+                    pdf.addPage();
+                }
+            }
 
-  // Fit image to page width, preserve aspect ratio
-  const imgWidth = pageWidth;
-  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            pdf.save('digital_futures_lesson.pdf');
+        }
 
-  let y = 0;
-  let remaining = imgHeight;
+        async function downloadDoc() {
+            const canvas = await buildLessonCanvas();
+            if (!canvas) return;
 
-  // Add multiple pages if needed
-  while (remaining > 0) {
-    pdf.addImage(imgData, 'PNG', 0, y, imgWidth, imgHeight);
-    remaining -= pageHeight;
-    if (remaining > 0) {
-      pdf.addPage();
-      y -= pageHeight;
-    }
-  }
+            const imgData = canvas.toDataURL('image/png');
+            const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Digital Futures Lesson Plan</title>
+  <style>
+    body { margin: 0; padding: 0; }
+    img { width: 100%; height: auto; display: block; }
+  </style>
+</head>
+<body>
+  <img src="${imgData}" alt="Digital Futures Lesson Plan" />
+</body>
+</html>`;
 
-  pdf.save('digital_futures_lesson.pdf');
-}
+            const blob = new Blob([html], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'digital_futures_lesson.doc';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        document.getElementById('pdf-btn').addEventListener('click', printLesson);
+        document.getElementById('doc-btn').addEventListener('click', downloadDoc);
     </script>
 </body>
 </html>
