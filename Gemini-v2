@@ -743,7 +743,7 @@
                 Pillar: "${pillarInfo[pVal].name}"
                 Duration: ${dVal} min
                 Evidence Base: "${evidence}"
-                Core Standard (ANCHOR): "${bandData.standard}"
+                Core Standard (CA ELA CCSS ANCHOR): "${bandData.standard}"
                 Developmental Focus: "${bandData.focus}"
 
                 CRITICAL INSTRUCTION: Ensure the language, activity complexity, and discussion depth are APPROPRIATE for ${bandData.title}.
@@ -751,6 +751,8 @@
                 - For 3-5: Use relatable scenarios, rule-making, introductory ethics.
                 - For 6-8: Focus on social dynamics, peer pressure, identity, and "the why". Use concepts from Haidt (e.g. social comparison, FOMO).
                 - For 9-12: Focus on autonomy, future consequences, systemic analysis, and leadership.
+                - Standards PRIORITY: First align to the CA ELA Common Core standard above (use it as the primary anchor).
+                - Standards VALIDATION: Then identify 2-4 additional aligned standards from CA or national frameworks (e.g., CA Health Ed, ISTE, CASEL, AASL), ensuring they authentically match the lesson content and grade band. Keep them concise.
 
                 Output JSON ONLY:
                 {
@@ -762,7 +764,8 @@
                     "activity_steps": ["Step 1 text...", "Step 2 text..."],
                     "discussion": ["Q1", "Q2"],
                     "tips": "string (Facilitator note on WHY this is developmentally appropriate for this age band)",
-                    "aligned_competencies": ["Competency 1", "Competency 2"] 
+                    "aligned_competencies": ["Competency 1", "Competency 2"],
+                    "aligned_standards": ["Framework: Standard code - Short alignment note", "Framework: Standard code - Short alignment note"]
                 }
             `;
 
@@ -789,7 +792,7 @@
                 const coreEl = document.createElement('div');
                 coreEl.className = "mb-3 pb-3 border-b border-gray-100";
                 coreEl.innerHTML = `
-                    <div class="text-[10px] uppercase tracking-wider font-bold text-ucla-blue mb-1">Primary Standard</div>
+                    <div class="text-[10px] uppercase tracking-wider font-bold text-ucla-blue mb-1">Primary Standard (CA ELA CCSS)</div>
                     <div class="text-sm font-semibold text-gray-900">${bandData.standard}</div>
                     <div class="text-xs text-gray-500 mt-1 italic">Focus: ${bandData.focus}</div>
                 `;
@@ -808,6 +811,22 @@
                      });
                      compEl.appendChild(ul);
                      stdContainer.appendChild(compEl);
+                }
+
+                // 3. Additional CA/National Standards (AI Validated)
+                if (content.aligned_standards && content.aligned_standards.length > 0) {
+                     const standardsEl = document.createElement('div');
+                     standardsEl.className = "mt-3";
+                     standardsEl.innerHTML = `<div class="text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-1">Additional CA/National Alignments</div>`;
+                     const ul = document.createElement('ul');
+                     ul.className = "space-y-1 list-disc list-inside text-xs text-gray-600";
+                     content.aligned_standards.forEach(s => {
+                         const li = document.createElement('li');
+                         li.innerText = s;
+                         ul.appendChild(li);
+                     });
+                     standardsEl.appendChild(ul);
+                     stdContainer.appendChild(standardsEl);
                 }
 
                 // Lists
