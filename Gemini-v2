@@ -465,6 +465,24 @@
             "p5": "Based on 'Global Democratic Digital Citizenship' (Hughes et al., 2024) and 'Building AI Literacy' (SchoolAI). Moves beyond safety ('don't do this') to active citizenship. Empowering students to use tools for civic good, understanding AI bias, and participating in the 'Wait Until 8th' pledge or similar community norms as active stakeholders, not just passive users."
         };
 
+        // --- CA COMMON CORE STANDARDS DATABASE ---
+        const caStandards = {
+            "tk": "CA.CCSS.ELA-Literacy.SL.K.1a: Follow agreed-upon rules for discussions.",
+            "k": "CA.CCSS.ELA-Literacy.SL.K.6: Speak audibly and express thoughts, feelings, and ideas clearly.",
+            "1": "CA.CCSS.ELA-Literacy.SL.1.1: Participate in collaborative conversations with diverse partners.",
+            "2": "CA.CCSS.ELA-Literacy.W.2.8: Recall information from experiences to answer a question.",
+            "3": "CA.CCSS.ELA-Literacy.SL.3.1d: Explain their own ideas and understanding in light of the discussion.",
+            "4": "CA.CCSS.ELA-Literacy.RI.4.7: Interpret information presented visually, orally, or quantitatively.",
+            "5": "CA.CCSS.ELA-Literacy.W.5.9: Draw evidence from literary or informational texts to support analysis.",
+            "6": "CA.CCSS.ELA-Literacy.SL.6.2: Interpret information presented in diverse media and formats.",
+            "7": "CA.CCSS.ELA-Literacy.RI.7.8: Trace and evaluate the argument and specific claims in a text.",
+            "8": "CA.CCSS.ELA-Literacy.SL.8.1: Engage effectively in a range of collaborative discussions.",
+            "9": "CA.CCSS.ELA-Literacy.W.9-10.6: Use technology to produce, publish, and update individual or shared writing products.",
+            "10": "CA.CCSS.ELA-Literacy.SL.9-10.2: Integrate multiple sources of information presented in diverse media or formats.",
+            "11": "CA.CCSS.ELA-Literacy.RI.11-12.7: Integrate and evaluate multiple sources of information presented in different media.",
+            "12": "CA.CCSS.ELA-Literacy.W.11-12.8: Gather relevant information from multiple authoritative print and digital sources."
+        };
+
         // --- CA STANDARDS & DEVELOPMENTAL GOALS BY BAND ---
         const gradeBandStandards = {
             "tk-2": {
@@ -488,6 +506,14 @@
                 focus: "Autonomy & Systemic Analysis. Executive function development. Analyzing 'Persuasive Design' (CHT), algorithmic bias, and preparing for professional digital footprints. Debate CA AB 3216 and KOSA legislation implications."
             }
         };
+
+        function getCommonCoreStandardsForBand(bandValue) {
+            if (bandValue === 'tk-2') return ['tk', 'k', '1', '2'];
+            if (bandValue === '3-5') return ['3', '4', '5'];
+            if (bandValue === '6-8') return ['6', '7', '8'];
+            if (bandValue === '9-12') return ['9', '10', '11', '12'];
+            return [];
+        }
 
         // --- DATA STRUCTURE ---
         const pillarInfo = {
@@ -782,7 +808,8 @@
                 document.getElementById('plan-module').innerText = bandData.title;
                 
                 document.getElementById('plan-objective').innerText = content.objective;
-                document.getElementById('plan-evidence').innerText = evidence;
+                const evidenceText = evidence && evidence.trim() ? evidence : (evidenceBase[pVal] || "");
+                document.getElementById('plan-evidence').innerText = evidenceText;
                 
                 // Standards Rendering
                 const stdContainer = document.getElementById('plan-standards');
@@ -798,13 +825,35 @@
                 `;
                 stdContainer.appendChild(coreEl);
 
+                const commonCoreKeys = getCommonCoreStandardsForBand(bandVal);
+                const commonCoreList = commonCoreKeys
+                    .map(key => caStandards[key])
+                    .filter(Boolean);
+                if (commonCoreList.length > 0) {
+                    const ccEl = document.createElement('div');
+                    ccEl.className = "mb-3 pb-3 border-b border-gray-100";
+                    ccEl.innerHTML = `<div class="text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-1">CA ELA Common Core Standards (Grade-Level)</div>`;
+                    const ul = document.createElement('ul');
+                    ul.className = "space-y-1 list-disc list-inside text-xs text-gray-600";
+                    commonCoreList.forEach(s => {
+                        const li = document.createElement('li');
+                        li.innerText = s;
+                        ul.appendChild(li);
+                    });
+                    ccEl.appendChild(ul);
+                    stdContainer.appendChild(ccEl);
+                }
+
                 // 2. The AI Aligned Competencies
-                if (content.aligned_competencies && content.aligned_competencies.length > 0) {
+                const alignedCompetencies = Array.isArray(content.aligned_competencies)
+                    ? content.aligned_competencies
+                    : (content.aligned_competencies ? [content.aligned_competencies] : []);
+                if (alignedCompetencies.length > 0) {
                      const compEl = document.createElement('div');
                      compEl.innerHTML = `<div class="text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-1">Aligned Competencies</div>`;
                      const ul = document.createElement('ul');
                      ul.className = "space-y-1 list-disc list-inside text-xs text-gray-600";
-                     content.aligned_competencies.forEach(c => {
+                     alignedCompetencies.forEach(c => {
                          const li = document.createElement('li');
                          li.innerText = c;
                          ul.appendChild(li);
@@ -832,7 +881,10 @@
                 // Lists
                 const matList = document.getElementById('plan-materials');
                 matList.innerHTML = '';
-                content.materials.forEach(m => {
+                const materials = Array.isArray(content.materials)
+                    ? content.materials
+                    : (content.materials ? [content.materials] : []);
+                materials.forEach(m => {
                     const li = document.createElement('li');
                     li.className = "flex items-start gap-2";
                     li.innerHTML = `<span class="mt-1.5 w-1.5 h-1.5 bg-ucla-blue rounded-full flex-shrink-0"></span><span>${m}</span>`;
