@@ -1016,25 +1016,34 @@
             const canvas = await buildLessonCanvas();
             if (!canvas) return;
 
-            const imgData = canvas.toDataURL('image/png');
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF('p', 'pt', 'letter'); // or 'a4'
 
             const pageWidth = pdf.internal.pageSize.getWidth();
             const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 36; // 0.5in margins
+            const contentWidth = pageWidth - margin * 2;
+            const contentHeight = pageHeight - margin * 2;
 
-            const imgWidth = pageWidth;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            const scale = contentWidth / canvas.width;
+            const pageCanvasHeight = Math.floor(contentHeight / scale);
 
-            let y = 0;
-            let remaining = imgHeight;
+            let sourceY = 0;
+            while (sourceY < canvas.height) {
+                const sliceHeight = Math.min(pageCanvasHeight, canvas.height - sourceY);
+                const pageCanvas = document.createElement('canvas');
+                pageCanvas.width = canvas.width;
+                pageCanvas.height = sliceHeight;
+                const ctx = pageCanvas.getContext('2d');
+                ctx.drawImage(canvas, 0, sourceY, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
 
-            while (remaining > 0) {
-                pdf.addImage(imgData, 'PNG', 0, y, imgWidth, imgHeight);
-                remaining -= pageHeight;
-                if (remaining > 0) {
+                const imgData = pageCanvas.toDataURL('image/png');
+                const imgHeight = sliceHeight * scale;
+                pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, imgHeight);
+
+                sourceY += sliceHeight;
+                if (sourceY < canvas.height) {
                     pdf.addPage();
-                    y -= pageHeight;
                 }
             }
 
