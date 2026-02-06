@@ -863,16 +863,13 @@
                 }
 
                 // 3. Additional CA/National Standards (AI Validated)
-                const alignedStandards = Array.isArray(content.aligned_standards)
-                    ? content.aligned_standards
-                    : (content.aligned_standards ? [content.aligned_standards] : []);
-                if (alignedStandards.length > 0) {
+                if (content.aligned_standards && content.aligned_standards.length > 0) {
                      const standardsEl = document.createElement('div');
                      standardsEl.className = "mt-3";
                      standardsEl.innerHTML = `<div class="text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-1">Additional CA/National Alignments</div>`;
                      const ul = document.createElement('ul');
                      ul.className = "space-y-1 list-disc list-inside text-xs text-gray-600";
-                     alignedStandards.forEach(s => {
+                     content.aligned_standards.forEach(s => {
                          const li = document.createElement('li');
                          li.innerText = s;
                          ul.appendChild(li);
